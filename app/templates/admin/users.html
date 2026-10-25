@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Danh sách người dùng — SecureShare Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <div class="d-inline-flex align-items-center gap-2 mb-1">
+            <h2 class="fw-bold mb-0">Quản lý người dùng</h2>
+            <span class="badge badge-sec-role-admin">Admin</span>
+        </div>
+        <p class="text-muted mb-0">Danh sách toàn bộ các tài khoản trong hệ thống, vai trò và trạng thái khóa bảo mật.</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Quay lại Dashboard
+    </a>
+</div>
+
+<div class="card-sec">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">ID</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Lần nhập sai</th>
+                    <th>Trạng thái khóa</th>
+                    <th>Ngày tạo</th>
+                    <th class="pe-4">Đăng nhập gần nhất</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="ps-4 fw-semibold text-muted">#{{ u.id }}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-circle text-primary fs-5 me-2"></i>
+                            <strong>{{ u.username }}</strong>
+                        </div>
+                    </td>
+                    <td class="text-muted">{{ u.email }}</td>
+                    <td>
+                        {% if u.role == 'admin' %}
+                            <span class="badge badge-sec-role-admin"><i class="bi bi-shield-shaded me-1"></i>Admin</span>
+                        {% else %}
+                            <span class="badge badge-sec-role-user">User</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.failed_login_attempts > 0 %}
+                            <span class="badge bg-warning text-dark">{{ u.failed_login_attempts }} / 5</span>
+                        {% else %}
+                            <span class="text-muted small">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_locked() %}
+                            <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Đang bị khóa</span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success border">Bình thường</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">{{ u.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="pe-4 text-muted small">
+                        {% if u.last_login_at %}
+                            {{ u.last_login_at.strftime('%d/%m/%Y %H:%M') }}
+                        {% else %}
+                            <span class="text-muted">Chưa đăng nhập</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

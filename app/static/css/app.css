@@ -1,0 +1,264 @@
+/* SecureShare - Modern White & Blue Styling */
+:root {
+    --bg-page: #F7FAFC;
+    --card-bg: #FFFFFF;
+    --primary-blue: #2563EB;
+    --primary-dark: #1D4ED8;
+    --primary-light: #DBEAFE;
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --border-color: #E2E8F0;
+    --card-radius: 14px;
+    --transition-smooth: all 0.2s ease-in-out;
+}
+
+body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navbar */
+.navbar-custom {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--primary-blue) !important;
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    color: var(--text-main);
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    transition: var(--transition-smooth);
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: var(--primary-blue);
+    background-color: var(--primary-light);
+}
+
+/* Cards */
+.card-sec {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    transition: var(--transition-smooth);
+}
+
+.card-sec:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+.card-header-sec {
+    background: transparent;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.1rem 1.4rem;
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn-primary-sec {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: #FFFFFF;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.55rem 1.25rem;
+    transition: var(--transition-smooth);
+}
+
+.btn-primary-sec:hover, .btn-primary-sec:focus {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.btn-outline-sec {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    background: transparent;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.55rem 1.25rem;
+    transition: var(--transition-smooth);
+}
+
+.btn-outline-sec:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+/* Badges */
+.badge-sec-valid {
+    background-color: #DCFCE7;
+    color: #166534;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid #BBF7D0;
+}
+
+.badge-sec-tampered {
+    background-color: #FEE2E2;
+    color: #991B1B;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid #FECACA;
+}
+
+.badge-sec-unknown {
+    background-color: #FEF3C7;
+    color: #92400E;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid #FDE68A;
+}
+
+.badge-sec-role-admin {
+    background-color: #EDE9FE;
+    color: #5B21B6;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+}
+
+.badge-sec-role-user {
+    background-color: #E0F2FE;
+    color: #0369A1;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+}
+
+/* Stat Cards */
+.stat-card {
+    padding: 1.25rem;
+    border-radius: var(--card-radius);
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* Hash block */
+.hash-code-block {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background-color: #F1F5F9;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 0.88rem;
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Forms */
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Password Toggle Button & Seamless Input Group */
+.btn-toggle-password {
+    background-color: #FFFFFF !important;
+    border: 1px solid #dee2e6 !important;
+    border-left: none !important;
+    color: #64748B !important;
+    padding: 0 1rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.btn-toggle-password:hover,
+.btn-toggle-password:focus,
+.btn-toggle-password:active {
+    background-color: #F8FAFC !important;
+    border-color: #dee2e6 !important;
+    border-left: none !important;
+    color: var(--primary-blue) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.input-group:focus-within .form-control {
+    border-color: var(--primary-blue) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+.input-group:focus-within .btn-toggle-password {
+    border-color: var(--primary-blue) !important;
+}
+
+/* Auth Cards without black borders */
+.auth-card {
+    border: none !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+    border-radius: var(--card-radius);
+    background: #FFFFFF;
+}
+
+/* Drag drop area */
+.upload-dropzone {
+    border: 2px dashed #93C5FD;
+    background-color: #F8FAFC;
+    border-radius: var(--card-radius);
+    padding: 3rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.upload-dropzone:hover, .upload-dropzone.dragover {
+    border-color: var(--primary-blue);
+    background-color: var(--primary-light);
+}
+
+/* Footer */
+footer {
+    background-color: #FFFFFF;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}

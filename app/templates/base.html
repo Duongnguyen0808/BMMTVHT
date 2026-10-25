@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SecureShare — Chia sẻ tài liệu an toàn{% endblock %}</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top py-2">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('files.home') }}">
+                <i class="bi bi-shield-lock-fill text-primary"></i>
+                <span>Secure<span class="text-dark">Share</span></span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'files.home' %}active{% endif %}" href="{{ url_for('files.home') }}">
+                            <i class="bi bi-house me-1"></i> Trang chủ
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'files.dashboard' %}active{% endif %}" href="{{ url_for('files.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint in ['files.index', 'files.upload', 'files.detail'] %}active{% endif %}" href="{{ url_for('files.index') }}">
+                            <i class="bi bi-folder2-open me-1"></i> Tài liệu
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'files.activity' %}active{% endif %}" href="{{ url_for('files.activity') }}">
+                            <i class="bi bi-clock-history me-1"></i> Hoạt động
+                        </a>
+                    </li>
+                    {% if current_user.is_admin() %}
+                    <li class="nav-item">
+                        <a class="nav-link text-primary fw-semibold {% if request.blueprint == 'admin' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
+                            <i class="bi bi-shield-shaded me-1"></i> Quản trị Admin
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'files.testcases' %}active{% endif %}" href="{{ url_for('files.testcases') }}">
+                            <i class="bi bi-clipboard-check me-1"></i> Test Cases & Báo cáo
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-2">
+                    {% if current_user.is_authenticated %}
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 py-1 px-3 border" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle text-primary"></i>
+                            <span class="fw-semibold">{{ current_user.username }}</span>
+                            {% if current_user.is_admin() %}
+                            <span class="badge badge-sec-role-admin ms-1">Admin</span>
+                            {% else %}
+                            <span class="badge badge-sec-role-user ms-1">User</span>
+                            {% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userMenu">
+                            <li><h6 class="dropdown-header">{{ current_user.email }}</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('files.dashboard') }}"><i class="bi bi-grid me-2"></i> Bảng điều khiển</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('files.activity') }}"><i class="bi bi-journal-text me-2"></i> Nhật ký bảo mật</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{{ url_for('auth.logout') }}" method="POST" class="px-2 py-1">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 text-start">
+                                        <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-sec btn-sm px-3">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary-sec btn-sm px-3">
+                        <i class="bi bi-person-plus me-1"></i> Đăng ký
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="py-4">
+        <div class="{% block container_class %}container{% endblock %}">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="row justify-content-center">
+                        <div class="col-12">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show card-sec py-3 px-4 mb-4" role="alert">
+                                    <div class="d-flex align-items-center">
+                                        {% if category == 'success' %}
+                                            <i class="bi bi-check-circle-fill text-success fs-5 me-2"></i>
+                                        {% elif category == 'danger' or category == 'error' %}
+                                            <i class="bi bi-exclamation-triangle-fill text-danger fs-5 me-2"></i>
+                                        {% elif category == 'warning' %}
+                                            <i class="bi bi-exclamation-circle-fill text-warning fs-5 me-2"></i>
+                                        {% else %}
+                                            <i class="bi bi-info-circle-fill text-primary fs-5 me-2"></i>
+                                        {% endif %}
+                                        <div class="flex-grow-1">{{ message }}</div>
+                                        <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4 mt-auto">
+        <div class="container text-center">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+                <div>
+                    <strong>SecureShare</strong> — Hệ thống chia sẻ tài liệu an toàn & Xác thực toàn vẹn (SHA-256 + Fernet).
+                </div>
+                <div class="text-muted">
+                    Học phần: Bảo mật mạng máy tính và hệ thống &bull; Đồ án cuối kỳ
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

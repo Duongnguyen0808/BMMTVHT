@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}CẢNH BÁO: Tệp tin bị giả mạo — SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-lg-8">
+        <div class="card-sec border-danger p-4 p-md-5">
+            <div class="text-center mb-4">
+                <div class="stat-icon bg-danger-subtle text-danger mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.6rem;">
+                    <i class="bi bi-shield-slash-fill"></i>
+                </div>
+                <h2 class="fw-bold text-danger">PHÁT HIỆN TỆP TIN BỊ GIẢ MẠO!</h2>
+                <p class="lead text-dark">Quá trình tải xuống đã bị NGĂN CHẶN để bảo vệ an toàn hệ thống</p>
+            </div>
+
+            <div class="alert alert-danger py-3 px-4 mb-4">
+                <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Chi tiết vi phạm toàn vẹn (Integrity Violation):</h6>
+                <p class="mb-1 small">Tệp tin: <strong>{{ file.original_name }}</strong> (ID: #{{ file.id }})</p>
+                <p class="mb-1 small">Lý do: Nội dung tệp tin đã bị sửa đổi trái phép trên ổ đĩa máy chủ hoặc lỗi xác thực MAC/giải mã Fernet. Giá trị băm SHA-256 tính toán lại không trùng khớp với chữ ký lưu trữ ban đầu.</p>
+                <p class="mb-0 small fw-bold">Hành vi này đã được ghi nhận vào nhật ký an ninh: <code>AuditLog [FILE_INTEGRITY_FAILED]</code></p>
+            </div>
+
+            <div class="p-3 bg-light rounded border mb-4 small">
+                <div class="text-muted mb-1">Mã băm SHA-256 nguyên bản kỳ vọng:</div>
+                <div class="font-monospace text-dark p-2 bg-white rounded border">{{ file.sha256_hash }}</div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('files.detail', file_id=file.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Quay lại chi tiết tệp
+                </a>
+                <a href="{{ url_for('files.dashboard') }}" class="btn btn-primary-sec">
+                    <i class="bi bi-speedometer2 me-1"></i> Về Bảng điều khiển
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

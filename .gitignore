@@ -1,0 +1,34 @@
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Local sensitive configuration
+.env
+
+# Database and SQLite instances
+instance/
+*.db
+*.sqlite3
+
+# Uploaded encrypted files (except .gitkeep)
+storage/*
+!storage/.gitkeep
+
+# Evidence directory
+evidence/*
+!evidence/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

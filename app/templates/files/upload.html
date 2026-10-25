@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Tải lên tài liệu mới — SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-2">
+    <div class="col-lg-8">
+        <div class="card-sec p-4 p-md-5">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <a href="{{ url_for('files.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+                <div>
+                    <h3 class="fw-bold mb-0">Tải lên tài liệu bảo mật</h3>
+                    <p class="text-muted small mb-0">Tệp tin sẽ được tính mã băm SHA-256 và mã hóa đối xứng Fernet trước khi lưu trữ.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('files.upload') }}" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+
+                <!-- Drag & Drop Zone -->
+                <div class="upload-dropzone mb-4" id="uploadDropzone">
+                    <i class="bi bi-cloud-arrow-up-fill text-primary" style="font-size: 3rem;"></i>
+                    <h5 class="fw-semibold mt-3 mb-1">Kéo và thả tệp tin vào đây, hoặc bấm để chọn tệp</h5>
+                    <p class="text-muted small mb-3">Hỗ trợ các định dạng: <strong>.pdf, .docx, .txt, .png, .jpg, .jpeg</strong> (Tối đa 10 MB)</p>
+                    <div id="fileDisplayName" class="badge bg-primary fs-6 px-3 py-2 d-none"></div>
+                    <div id="fileDisplaySize" class="text-muted small mt-1 d-none"></div>
+
+                    <!-- Hidden file input -->
+                    {{ form.file(class="d-none", id="fileInput") }}
+                </div>
+
+                {% for error in form.file.errors %}
+                    <div class="alert alert-danger py-2 small mb-3">{{ error }}</div>
+                {% endfor %}
+
+                <!-- Security details note -->
+                <div class="p-3 bg-light rounded border mb-4">
+                    <h6 class="fw-bold small text-dark mb-2 d-flex align-items-center">
+                        <i class="bi bi-shield-check text-success me-2"></i> Quy trình bảo mật tự động khi tải lên:
+                    </h6>
+                    <ul class="text-muted small mb-0 ps-3">
+                        <li>Kiểm tra định dạng hợp lệ, từ chối mọi tệp thực thi độc hại (<code>.exe, .bat, .sh,...</code>).</li>
+                        <li>Tính toán mã băm mật mã học <strong>SHA-256</strong> trên nội dung gốc để làm bằng chứng toàn vẹn.</li>
+                        <li>Mã hóa dữ liệu với <strong>Fernet (AES-128-CBC + HMAC)</strong> bằng khóa an toàn của máy chủ.</li>
+                        <li>Lưu trữ trên đĩa với tên tệp ngẫu nhiên <strong>UUID</strong>, tuyệt đối không lộ tên gốc hoặc đường dẫn nhạy cảm.</li>
+                    </ul>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('files.index') }}" class="btn btn-outline-secondary px-4">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-primary-sec px-4">
+                        <i class="bi bi-lock-fill me-1"></i> Tải lên & Mã hóa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

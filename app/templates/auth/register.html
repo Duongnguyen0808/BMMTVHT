@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng ký tài khoản — SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-7 col-lg-6">
+        <div class="card-sec p-4 p-md-5 auth-card border-0">
+            <div class="text-center mb-4">
+                <div class="stat-icon bg-light text-primary mx-auto mb-2">
+                    <i class="bi bi-person-plus-fill"></i>
+                </div>
+                <h3 class="fw-bold">Tạo tài khoản mới</h3>
+                <p class="text-muted">Đăng ký tham gia mạng lưới chia sẻ tài liệu bảo mật</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="usernameInput">
+                        <i class="bi bi-person me-1"></i> {{ form.username.label.text }}
+                    </label>
+                    {{ form.username(class="form-control form-control-lg fs-6", id="usernameInput", placeholder="Ví dụ: nguyenvanan") }}
+                    <div id="usernameErrorContainer">
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1 error-msg-text">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="emailInput">
+                        <i class="bi bi-envelope me-1"></i> {{ form.email.label.text }}
+                    </label>
+                    {{ form.email(class="form-control form-control-lg fs-6", id="emailInput", placeholder="name@example.com") }}
+                    <div id="emailErrorContainer">
+                        {% for error in form.email.errors %}
+                            <div class="text-danger small mt-1 error-msg-text">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="registerPasswordInput">
+                        <i class="bi bi-lock me-1"></i> {{ form.password.label.text }}
+                    </label>
+                    <div class="input-group">
+                        {{ form.password(class="form-control form-control-lg fs-6 border-end-0", id="registerPasswordInput", placeholder="Tối thiểu 8 ký tự, có hoa, thường, số") }}
+                        <button class="btn btn-toggle-password" type="button" onclick="togglePasswordVisibility('registerPasswordInput', this)" tabindex="-1" title="Hiện/ẩn mật khẩu">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div id="passwordErrorContainer">
+                        {% for error in form.password.errors %}
+                            <div class="text-danger small mt-1 error-msg-text">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="p-3 bg-light rounded mt-2 border">
+                        <small class="fw-semibold text-dark d-block mb-1">Yêu cầu bảo mật mật khẩu:</small>
+                        <div class="row g-1 small">
+                            <div class="col-6 text-muted" id="ruleLen"><i class="bi bi-circle me-1"></i>Tối thiểu 8 ký tự</div>
+                            <div class="col-6 text-muted" id="ruleUpper"><i class="bi bi-circle me-1"></i>1 chữ hoa (A-Z)</div>
+                            <div class="col-6 text-muted" id="ruleLower"><i class="bi bi-circle me-1"></i>1 chữ thường (a-z)</div>
+                            <div class="col-6 text-muted" id="ruleNum"><i class="bi bi-circle me-1"></i>1 chữ số (0-9)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="confirmPasswordInput">
+                        <i class="bi bi-check2-circle me-1"></i> {{ form.confirm_password.label.text }}
+                    </label>
+                    <div class="input-group">
+                        {{ form.confirm_password(class="form-control form-control-lg fs-6 border-end-0", id="confirmPasswordInput", placeholder="Nhập lại mật khẩu để xác nhận") }}
+                        <button class="btn btn-toggle-password" type="button" onclick="togglePasswordVisibility('confirmPasswordInput', this)" tabindex="-1" title="Hiện/ẩn mật khẩu">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div id="confirmPasswordErrorContainer">
+                        {% for error in form.confirm_password.errors %}
+                            <div class="text-danger small mt-1 error-msg-text">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-sec btn-lg w-100 mb-3">
+                    <i class="bi bi-person-check me-2"></i> Hoàn tất đăng ký
+                </button>
+
+                <div class="text-center text-muted small">
+                    Đã có tài khoản? <a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold text-decoration-none">Đăng nhập</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

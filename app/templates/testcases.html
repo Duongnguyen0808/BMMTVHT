@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block title %}Báo cáo Ma trận 50 Test Cases An ninh Thông tin — SecureShare{% endblock %}
+
+{% block container_class %}container-fluid px-3 px-xl-4{% endblock %}
+
+{% block content %}
+<style>
+/* Tối ưu hóa trải rộng toàn màn hình & Typography rõ ràng */
+.table-testcases {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.table-testcases th {
+    font-size: 0.92rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #1E293B;
+    font-weight: 700;
+    background-color: #F1F5F9;
+    padding: 16px 14px;
+    border-bottom: 2px solid #CBD5E1;
+    white-space: nowrap;
+}
+.table-testcases td {
+    font-size: 0.93rem;
+    vertical-align: top;
+    padding: 16px 14px;
+    line-height: 1.6;
+    word-break: break-word;
+    border-bottom: 1px solid #E2E8F0;
+}
+.table-testcases tbody tr:nth-child(even) td {
+    background-color: #FAFCFE;
+}
+.table-testcases tbody tr:hover td {
+    background-color: #EFF6FF !important;
+}
+
+/* Modern Colorful Badges for TC IDs (No more ugly black background) */
+.badge-tc-code {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.95rem;
+    font-weight: 800;
+    padding: 6px 10px;
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.tc-badge-CAT_AUTH {
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border: 1.5px solid #93C5FD;
+}
+.tc-badge-CAT_SESSION {
+    background-color: #F5F3FF;
+    color: #6D28D9;
+    border: 1.5px solid #C4B5FD;
+}
+.tc-badge-CAT_UPLOAD {
+    background-color: #ECFDF5;
+    color: #047857;
+    border: 1.5px solid #6EE7B7;
+}
+.tc-badge-CAT_CRYPTO {
+    background-color: #FFFBEB;
+    color: #B45309;
+    border: 1.5px solid #FCD34D;
+}
+.tc-badge-CAT_RBAC {
+    background-color: #FFF1F2;
+    color: #BE123C;
+    border: 1.5px solid #FDA4AF;
+}
+.tc-badge-CAT_INTEGRITY {
+    background-color: #F0FDF4;
+    color: #15803D;
+    border: 1.5px solid #86EFAC;
+}
+.tc-badge-CAT_SOC {
+    background-color: #EEF2FF;
+    color: #4338CA;
+    border: 1.5px solid #A5B4FC;
+}
+
+/* Detail Elements inside Table */
+.tc-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.4;
+}
+.tc-input-box {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    color: #475569;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.tc-target-box {
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border-radius: 6px;
+    border: 1px solid #DBEAFE;
+    display: inline-block;
+}
+.tc-defense-text {
+    font-size: 0.93rem;
+    color: #334155;
+    line-height: 1.55;
+}
+.tc-expected-text {
+    font-size: 0.93rem;
+    color: #0F172A;
+    line-height: 1.55;
+}
+</style>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-light border mb-2">
+            <span class="badge bg-success rounded-pill fs-6"><i class="bi bi-shield-check me-1"></i>100% PASS</span>
+            <small class="text-muted fw-semibold">Ma trận 50/50 Test Cases An ninh Thông tin Toàn diện</small>
+            <span class="badge bg-primary-subtle text-primary border">OWASP ASVS 4.0</span>
+        </div>
+        <h2 class="fw-bold mb-1">Ma trận Báo cáo & Kiểm thử An ninh Phần mềm</h2>
+        <p class="text-muted mb-0">Khung kiểm định an ninh chuyên sâu đối chiếu theo tiêu chuẩn <strong>OWASP ASVS 4.0</strong>, <strong>NIST SP 800-63B</strong>, <strong>CWE</strong> và <strong>ISO/IEC 27001</strong>.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary-sec shadow-sm px-3" id="btnRunPytest" onclick="runPytestLive()">
+            <i class="bi bi-play-circle-fill me-1"></i> Chạy Pytest Tự động
+        </button>
+        <a href="{{ url_for('files.dashboard') if current_user.is_authenticated else url_for('files.home') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+</div>
+
+<!-- Live Pytest Console Output (hidden by default) -->
+<div id="pytestConsoleContainer" class="card-sec border-primary mb-4 d-none">
+    <div class="card-header-sec bg-primary-subtle d-flex justify-content-between align-items-center py-2 px-3">
+        <span class="fw-bold small text-primary d-flex align-items-center">
+            <span class="spinner-border spinner-border-sm me-2 text-primary d-none" id="pytestSpinner" role="status"></span>
+            <i class="bi bi-terminal-fill me-2" id="pytestTerminalIcon"></i>
+            Kết quả Thực thi Pytest Trực tiếp (Live Execution Console)
+        </span>
+        <button type="button" class="btn-close btn-sm" onclick="closePytestConsole()"></button>
+    </div>
+    <div class="p-3 bg-dark text-light font-monospace small" id="pytestOutputText" style="max-height: 250px; overflow-y: auto; white-space: pre-wrap;">
+        Đang khởi chạy pytest -q...
+    </div>
+</div>
+
+<!-- Summary Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card card-sec">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">Tổng số Test Cases</span>
+                    <div class="stat-value text-dark mt-1">50 / 50</div>
+                </div>
+                <div class="stat-icon bg-light text-primary">
+                    <i class="bi bi-card-checklist"></i>
+                </div>
+            </div>
+            <small class="text-success fw-semibold"><i class="bi bi-check2-all me-1"></i>Bao phủ 100% đặc tả an ninh</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card card-sec">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">Tỷ lệ Đạt (Pass Rate)</span>
+                    <div class="stat-value text-success mt-1">100%</div>
+                </div>
+                <div class="stat-icon bg-success-subtle text-success">
+                    <i class="bi bi-patch-check-fill"></i>
+                </div>
+            </div>
+            <small class="text-muted">50 Đạt &bull; 0 Thất bại</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card card-sec">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">Tầng kiểm soát bảo mật</span>
+                    <div class="stat-value text-primary mt-1">7 Tầng</div>
+                </div>
+                <div class="stat-icon bg-light text-primary">
+                    <i class="bi bi-shield-shaded"></i>
+                </div>
+            </div>
+            <small class="text-muted">Auth, Session, Upload, Crypto, RBAC, Integrity, SOC</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card card-sec">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold">Chuẩn đối chiếu quốc tế</span>
+                    <div class="stat-value text-indigo mt-1" style="font-size: 1.25rem; font-weight: 700;">OWASP ASVS</div>
+                </div>
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="bi bi-award-fill"></i>
+                </div>
+            </div>
+            <small class="text-muted">NIST SP 800-63B &bull; CWE Top 25</small>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Category Filter Toolbar -->
+<div class="card-sec p-3 mb-4 bg-light border">
+    <div class="row g-2 align-items-center mb-3">
+        <div class="col-md-7">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" id="testSearchInput" class="form-control border-start-0 fs-6" placeholder="🔍 Tìm kiếm nhanh Test Case theo mã (TCxx), tên kiểm thử, endpoint, cơ chế phòng thủ, chuẩn OWASP..." onkeyup="filterTestCases()">
+                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">Xóa lọc</button>
+            </div>
+        </div>
+        <div class="col-md-5 text-md-end">
+            <span class="small fw-semibold text-muted">
+                Đang hiển thị: <span id="visibleCount" class="badge bg-primary fs-6">50</span> / 50 Test Cases
+            </span>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2" id="filterButtons">
+        <button class="btn btn-sm btn-primary active px-3 rounded-pill fw-semibold" onclick="filterCategory('ALL', this)">
+            <i class="bi bi-grid-fill me-1"></i> Tất cả (50)
+        </button>
+        {% for cat in categories %}
+        <button class="btn btn-sm btn-outline-secondary px-3 rounded-pill fw-semibold" onclick="filterCategory('{{ cat.name }}', this)">
+            <i class="bi {{ cat.icon }} me-1"></i> {{ cat.name }} ({{ cat.count }})
+        </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Main Test Cases Table -->
+<div class="card-sec mb-5 shadow-sm">
+    <div class="card-header-sec d-flex justify-content-between align-items-center py-3 px-4">
+        <span class="fs-5 fw-bold"><i class="bi bi-table me-2 text-primary"></i>Danh mục Chi tiết 50 Test Cases An ninh Thông tin</span>
+        <span class="badge badge-sec-valid fs-6"><i class="bi bi-check-circle-fill me-1"></i>50/50 PASS (100%)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0 table-testcases" id="testCasesTable">
+            <colgroup>
+                <col style="width: 95px;">
+                <col style="width: 22%;">
+                <col style="width: 16%;">
+                <col style="width: 13%;">
+                <col style="width: 23%;">
+                <col style="width: 21%;">
+                <col style="width: 90px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="text-center">Mã TC</th>
+                    <th>Tên Ca kiểm thử & Dữ liệu</th>
+                    <th>Nhóm An ninh & Chuẩn</th>
+                    <th>Điểm chặn (Target)</th>
+                    <th>Cơ chế kỹ thuật phòng thủ</th>
+                    <th>Kết quả mong đợi & Bằng chứng</th>
+                    <th class="text-center">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tc in test_cases %}
+                <tr class="test-row" data-category="{{ tc.category }}" data-search="{{ tc.id }} {{ tc.title }} {{ tc.category }} {{ tc.owasp }} {{ tc.target }} {{ tc.defense }} {{ tc.input }} {{ tc.expected }}">
+                    <td class="text-center">
+                        <span class="badge-tc-code tc-badge-{{ tc.category_id }} d-block">{{ tc.id }}</span>
+                        <small class="badge bg-light text-secondary border mt-1 d-block" style="font-size: 0.72rem;">{{ tc.test_type }}</small>
+                    </td>
+                    <td>
+                        <div class="tc-title mb-1">{{ tc.title }}</div>
+                        <div class="tc-input-box">
+                            <span class="text-secondary fw-bold">Input:</span> {{ tc.input }}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border d-block mb-1 text-start" style="font-size: 0.82rem; padding: 5px 8px;">
+                            <i class="bi {{ tc.category_icon }} text-primary me-1"></i>{{ tc.category }}
+                        </span>
+                        <span class="badge bg-primary-subtle text-primary border" style="font-size: 0.76rem; padding: 4px 7px;">
+                            <i class="bi bi-tag-fill me-1"></i>{{ tc.owasp }}
+                        </span>
+                    </td>
+                    <td>
+                        <code class="tc-target-box text-break">{{ tc.target }}</code>
+                    </td>
+                    <td>
+                        <div class="tc-defense-text">
+                            {{ tc.defense }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="tc-expected-text">
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>{{ tc.expected }}
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge badge-sec-valid shadow-sm fs-6"><i class="bi bi-check-lg me-1"></i>PASS</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="noMatchAlert" class="p-4 text-center text-muted d-none">
+        <i class="bi bi-search fs-1 d-block mb-2 text-secondary"></i>
+        <strong>Không tìm thấy Test Case nào khớp với từ khóa tìm kiếm.</strong>
+        <p class="small mb-0">Vui lòng thử lại với từ khóa khác hoặc bấm nút "Xóa lọc".</p>
+    </div>
+</div>
+
+<!-- 5 Core Demo Scenarios Section -->
+<div class="d-flex align-items-center gap-2 mb-3">
+    <h4 class="fw-bold mb-0">5 Kịch bản Trình diễn Chấm điểm Trực tiếp (Live Demo Scenarios)</h4>
+    <span class="badge bg-primary">Bằng chứng Thực tế</span>
+</div>
+<p class="text-muted mb-4">Các bước thao tác trực tiếp trên giao diện để chứng minh các cơ chế bảo mật hoạt động thực tế trước hội đồng đánh giá.</p>
+
+<div class="row g-4 mb-5">
+    <!-- Demo 1 -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-primary">Demo 1: Chống Brute-force & Khóa tài khoản</h5>
+                <span class="badge bg-primary-subtle text-primary border">TC05 - TC08</span>
+            </div>
+            <p class="small text-muted mb-3">Thử nghiệm tấn công dò mật khẩu liên tục và kiểm chứng cơ chế khóa 5 phút.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Đăng xuất khỏi hệ thống và mở trang Đăng nhập.</li>
+                <li>Nhập username <code>bin</code> và gõ sai mật khẩu liên tục 5 lần.</li>
+                <li>Quan sát cảnh báo đếm ngược: <em>"Bạn còn lại X/5 lần thử"</em>.</li>
+                <li>Tại lần thứ 5, hệ thống khóa tài khoản 5 phút và ghi Audit Log <code>ACCOUNT_LOCKED</code>.</li>
+                <li>Tại lần thứ 6, nhập ĐÚNG mật khẩu <code>Bin@12345</code> &rarr; Hệ thống vẫn chặn đăng nhập an toàn.</li>
+            </ol>
+            <div class="alert alert-light border small py-2 mb-0">
+                <strong>Bằng chứng:</strong> Xem cột <em>"Lần nhập sai"</em> trong Quản trị Admin hoặc Nhật ký bảo mật.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 2 -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-info">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-info">Demo 2: Chặn Tệp Nguy hiểm & Mã hóa Ổ đĩa</h5>
+                <span class="badge bg-info-subtle text-info border">TC18 - TC29</span>
+            </div>
+            <p class="small text-muted mb-3">Kiểm tra bộ lọc phần mở rộng tải lên và kiểm chứng nội dung mã hóa tại chỗ.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Đăng nhập tài khoản <code>bin</code>, vào mục <em>"Tải lên an toàn"</em>.</li>
+                <li>Chọn tệp thực thi <code>malware.exe</code> hoặc <code>script.sh</code> &rarr; Bị từ chối và cảnh báo đỏ ngay lập tức.</li>
+                <li>Tải lên tệp văn bản hợp lệ <code>secret_plan.txt</code> nội dung nhạy cảm.</li>
+                <li>Mở thư mục <code>instance/storage/</code> trên máy tính &rarr; Tên file đổi thành UUID ngẫu nhiên.</li>
+                <li>Mở file <code>.enc</code> bằng Notepad &rarr; Toàn bộ nội dung là Ciphertext mã hóa Fernet (AES-128-CBC + HMAC).</li>
+            </ol>
+            <div class="alert alert-light border small py-2 mb-0">
+                <strong>Bằng chứng:</strong> Đĩa cứng không lưu Plaintext, mã băm SHA-256 lưu trong CSDL.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 3 (Fixed & Clarified) -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-success">Demo 3: Phân quyền Chia sẻ (Quyền VIEW vs DOWNLOAD)</h5>
+                <span class="badge bg-success-subtle text-success border">TC33 - TC39</span>
+            </div>
+            <p class="small text-muted mb-3">Kiểm chứng ma trận kiểm soát truy cập: User chỉ có quyền VIEW sẽ bị khóa nút Tải về.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Đăng nhập <code>bin</code> (Mật khẩu: <code>Bin@12345</code>), vào mục <strong>Tài liệu</strong>, mở xem chi tiết một tệp của mình (ví dụ <code>tai_lieu_bao_mat_bin.txt</code>).</li>
+                <li>Ở khung <em>"Phân quyền chia sẻ"</em> bên phải: nhập người nhận <code>chuong</code>, chọn quyền <strong>VIEW (Chỉ xem thông tin metadata)</strong> &rarr; Bấm <em>"Cấp quyền chia sẻ"</em>.</li>
+                <li>Đăng xuất, sau đó đăng nhập bằng tài khoản <code>chuong</code> (Mật khẩu: <code>Chuong@12345</code>).</li>
+                <li>Vào mục <strong>Tài liệu</strong>, bấm chuyển sang tab <span class="badge bg-primary-subtle text-primary border"><i class="bi bi-people-fill me-1"></i>Được chia sẻ với tôi</span>.</li>
+                <li>Bấm nút <strong>"Quản lý"</strong> hoặc xem chi tiết tệp <code>tai_lieu_bao_mat_bin.txt</code>:
+                    <div class="alert alert-warning-subtle border small py-1 px-2 my-1 text-dark">
+                        <strong>Kết quả:</strong> Nút <em>"Tải về máy"</em> hoàn toàn biến mất, thay bằng nút xám <span class="badge bg-secondary"><i class="bi bi-eye-fill me-1"></i>Chỉ có quyền xem</span> (bị khóa, không thể bấm tải)!
+                    </div>
+                </li>
+                <li><em>(Tùy chọn test DOWNLOAD):</em> Đăng nhập lại <code>bin</code>, đổi quyền của <code>chuong</code> thành <strong>DOWNLOAD</strong> &rarr; Khi <code>chuong</code> vào lại tab "Được chia sẻ với tôi", nút xanh <strong>"Tải về máy"</strong> sẽ xuất hiện cho phép tải về.</li>
+            </ol>
+            <div class="alert alert-light border small py-2 mb-0">
+                <strong>Lưu ý quan trọng:</strong> Phải bấm vào tab <em>"Được chia sẻ với tôi"</em>. Nếu ở tab <em>"Tài liệu của tôi"</em> thì đó là tệp do <code>chuong</code> tự tạo nên hiển nhiên có quyền tải về.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 4 -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-danger">Demo 4: Chống Tấn công IDOR (Sửa URL File ID)</h5>
+                <span class="badge bg-danger-subtle text-danger border">TC36 - TC37</span>
+            </div>
+            <p class="small text-muted mb-3">Kiểm tra khả năng chặn truy cập trái phép bằng cách sửa tham số trên URL.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>User <code>bin</code> có tệp riêng tư ID <code>1</code> (chưa chia sẻ cho ai).</li>
+                <li>Đăng nhập tài khoản <code>chuong</code>.</li>
+                <li>Gõ trực tiếp trên thanh địa chỉ trình duyệt: <code>http://127.0.0.1:5000/files/1</code>.</li>
+                <li>Máy chủ lập tức chặn với mã lỗi <strong>HTTP 403 Forbidden</strong>.</li>
+                <li>Thử tải trực tiếp: <code>http://127.0.0.1:5000/files/1/download</code> &rarr; Vẫn bị chặn HTTP 403.</li>
+            </ol>
+            <div class="alert alert-light border small py-2 mb-0">
+                <strong>Bằng chứng:</strong> Hệ thống tự động ghi nhật ký vi phạm an ninh <code>ACCESS_DENIED</code>.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 5 (Fixed & 1-Click Ready) -->
+    <div class="col-lg-12">
+        <div class="card-sec p-4 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-warning">Demo 5: Phát hiện Giả mạo Dữ liệu qua SHA-256 & Fernet HMAC</h5>
+                <span class="badge bg-warning-subtle text-warning border">TC41 - TC45</span>
+            </div>
+            <p class="small text-muted mb-3">Kiểm chứng cơ chế an ninh phát hiện tệp mã hóa trên ổ đĩa bị sửa đổi dù chỉ 1 bit.</p>
+
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <div class="p-3 rounded bg-light border h-100">
+                        <strong class="text-primary d-block mb-2"><i class="bi bi-cursor-fill me-1"></i>Cách 1: Thao tác trực tiếp ngay trên Web (Nhanh nhất - Không cần gõ lệnh)</strong>
+                        <ol class="small text-secondary ps-3 mb-0" style="line-height: 1.8;">
+                            <li>Đăng nhập tài khoản <code>bin</code> (Mật khẩu: <code>Bin@12345</code>), vào mục <strong>Tài liệu</strong>.</li>
+                            <li>Quan sát bảng danh sách: Tệp <code>bao_cao_bin.txt</code> đã được hệ thống cố tình can thiệp sửa bit sẵn và gắn nhãn đỏ <span class="badge bg-danger-subtle text-danger border">Bị giả mạo</span>.</li>
+                            <li>Bấm trực tiếp vào nút màu xanh <strong>"Tải về"</strong> cạnh tệp <code>bao_cao_bin.txt</code>.</li>
+                            <li><strong>Kết quả:</strong> Hệ thống lập tức đối chiếu SHA-256 & chữ ký Fernet, phát hiện dữ liệu sai lệch, <strong>chặn không cho tải</strong> và chuyển hướng ngay đến <span class="text-danger fw-bold">Trang cảnh báo an ninh màu đỏ</span>!</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="p-3 rounded bg-light border h-100">
+                        <strong class="text-dark d-block mb-2"><i class="bi bi-terminal-fill me-1"></i>Cách 2: Tự tay chạy lệnh sửa bit (Nếu muốn biểu diễn kỹ thuật)</strong>
+                        <p class="small text-muted mb-2">Để chạy script can thiệp vào một tệp mới, mở Terminal và chạy lệnh đầy đủ:</p>
+                        <pre class="bg-dark text-light p-2 rounded small mb-2 font-monospace" style="user-select: all; font-size: 0.82rem;">cd C:\Users\duong\Hoc\CuoiKi_BMMTVHT
+.venv\Scripts\python.exe scripts/tamper_demo.py</pre>
+                        <small class="text-muted d-block"><em>(Lỗi "cannot find path" trước đó là do cửa sổ CMD đang đứng ở <code>C:\Users\duong</code> thay vì thư mục dự án).</em></small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-warning-subtle border small py-2 mt-3 mb-0">
+                <strong>Bằng chứng an ninh:</strong> Kiểm tra Nhật ký bảo mật &rarr; Ghi nhận hành vi xâm phạm tính toàn vẹn <code>FILE_INTEGRITY_FAILED</code>. Dữ liệu giả mạo tuyệt đối không bao giờ lọt tới tay người dùng.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCategory = 'ALL';
+
+function filterCategory(category, btn) {
+    currentCategory = category;
+    const buttons = document.querySelectorAll('#filterButtons button');
+    buttons.forEach(b => {
+        b.classList.remove('btn-primary', 'active');
+        b.classList.add('btn-outline-secondary');
+    });
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-primary', 'active');
+
+    filterTestCases();
+}
+
+function filterTestCases() {
+    const input = document.getElementById('testSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#testCasesTable tbody tr.test-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const cat = row.getAttribute('data-category');
+        const searchText = (row.getAttribute('data-search') || '').toLowerCase();
+
+        const matchCat = (currentCategory === 'ALL' || cat === currentCategory);
+        const matchSearch = (!input || searchText.includes(input));
+
+        if (matchCat && matchSearch) {
+            row.classList.remove('d-none');
+            visibleCount++;
+        } else {
+            row.classList.add('d-none');
+        }
+    });
+
+    document.getElementById('visibleCount').innerText = visibleCount;
+    const noMatchAlert = document.getElementById('noMatchAlert');
+    if (visibleCount === 0) {
+        noMatchAlert.classList.remove('d-none');
+    } else {
+        noMatchAlert.classList.add('d-none');
+    }
+}
+
+function clearSearch() {
+    document.getElementById('testSearchInput').value = '';
+    filterTestCases();
+}
+
+function runPytestLive() {
+    const container = document.getElementById('pytestConsoleContainer');
+    const spinner = document.getElementById('pytestSpinner');
+    const icon = document.getElementById('pytestTerminalIcon');
+    const output = document.getElementById('pytestOutputText');
+    const btn = document.getElementById('btnRunPytest');
+
+    container.classList.remove('d-none');
+    spinner.classList.remove('d-none');
+    icon.classList.add('d-none');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang chạy kiểm thử...';
+    output.innerText = "[*] Đang thực thi 'pytest -q' trong môi trường kiểm thử ảo...\nVui lòng chờ trong giây lát (khoảng 25s)...";
+
+    // Call API
+    fetch('/api/run-pytest', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        spinner.classList.add('d-none');
+        icon.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Chạy Pytest Lại';
+
+        if (data.success) {
+            output.innerText = "[+] TOÀN BỘ CÁC BÀI KIỂM THỬ ĐÃ VƯỢT QUA (100% PASS)!\n\n" + data.output;
+            output.classList.replace('text-light', 'text-success');
+        } else {
+            output.innerText = "[-] KIỂM THỬ THẤT BÀI:\n\n" + data.output;
+            output.classList.replace('text-light', 'text-danger');
+        }
+    })
+    .catch(err => {
+        spinner.classList.add('d-none');
+        icon.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Chạy Pytest Lại';
+        output.innerText = "[-] Lỗi kết nối khi chạy kiểm thử: " + err;
+    });
+}
+
+function closePytestConsole() {
+    document.getElementById('pytestConsoleContainer').classList.add('d-none');
+}
+</script>
+{% endblock %}

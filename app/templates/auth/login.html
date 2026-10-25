@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập — SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card-sec p-4 p-md-5 auth-card border-0">
+            <div class="text-center mb-4">
+                <div class="stat-icon bg-light text-primary mx-auto mb-2">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h3 class="fw-bold">Đăng nhập</h3>
+                <p class="text-muted">Nhập thông tin xác thực để truy cập hệ thống</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="username_or_email">
+                        <i class="bi bi-person me-1"></i> {{ form.username_or_email.label.text }}
+                    </label>
+                    {{ form.username_or_email(class="form-control form-control-lg fs-6", placeholder="Nhập username hoặc email") }}
+                    {% for error in form.username_or_email.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="loginPasswordInput">
+                        <i class="bi bi-key me-1"></i> {{ form.password.label.text }}
+                    </label>
+                    <div class="input-group">
+                        {{ form.password(class="form-control form-control-lg fs-6 border-end-0", id="loginPasswordInput", placeholder="Nhập mật khẩu") }}
+                        <button class="btn btn-toggle-password" type="button" onclick="togglePasswordVisibility('loginPasswordInput', this)" tabindex="-1" title="Hiện/ẩn mật khẩu">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    {% for error in form.password.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        {{ form.remember_me(class="form-check-input", id="rememberMeCheck") }}
+                        <label class="form-check-label text-muted small" for="rememberMeCheck">
+                            {{ form.remember_me.label.text }}
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-sec btn-lg w-100 mb-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Đăng nhập
+                </button>
+
+                <div class="text-center text-muted small">
+                    Chưa có tài khoản? <a href="{{ url_for('auth.register') }}" class="text-primary fw-semibold text-decoration-none">Đăng ký ngay</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Demo Credentials Box -->
+        <div class="card-sec p-3 mt-3 bg-light border-0">
+            <h6 class="fw-bold text-dark small mb-2 d-flex align-items-center">
+                <i class="bi bi-info-circle-fill text-primary me-2"></i> Tài khoản mẫu dùng để thử nghiệm:
+            </h6>
+            <div class="row g-2 small text-muted">
+                <div class="col-6"><strong>admin</strong> / <code>Admin@123</code> <span class="badge badge-sec-role-admin">Admin</span></div>
+                <div class="col-6"><strong>bin</strong> / <code>Bin@12345</code> <span class="badge badge-sec-role-user">User</span></div>
+                <div class="col-6"><strong>khoi</strong> / <code>Khoi@12345</code> <span class="badge badge-sec-role-user">User</span></div>
+                <div class="col-6"><strong>chuong</strong> / <code>Chuong@12345</code> <span class="badge badge-sec-role-user">User</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

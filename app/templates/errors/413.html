@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}413 — Dung lượng tệp quá lớn{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-6 text-center">
+        <div class="stat-icon bg-warning-subtle text-warning mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2.2rem;">
+            <i class="bi bi-file-earmark-excel"></i>
+        </div>
+        <h1 class="display-5 fw-bold text-dark mb-2">413 — Tệp tin quá lớn</h1>
+        <p class="lead text-muted mb-4">
+            Dung lượng tệp bạn vừa tải lên vượt quá giới hạn an toàn tối đa cho phép của hệ thống (10 MB).
+        </p>
+        <a href="{{ url_for('files.upload') }}" class="btn btn-primary-sec">
+            <i class="bi bi-arrow-left me-1"></i> Thử lại với tệp nhỏ hơn
+        </a>
+    </div>
+</div>
+{% endblock %}

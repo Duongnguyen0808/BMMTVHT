@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Chi tiết tài liệu — {{ file.original_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('files.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Danh sách tài liệu
+    </a>
+    <div>
+        <h3 class="fw-bold mb-0 text-truncate" style="max-width: 600px;">{{ file.original_name }}</h3>
+        <small class="text-muted">ID tệp: {{ file.id }} &bull; Đăng tải lúc {{ file.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: File Details & Integrity -->
+    <div class="col-lg-7">
+        <!-- Metadata Card -->
+        <div class="card-sec p-4 mb-4">
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+                <i class="bi bi-file-earmark-text text-primary me-2"></i> Thông tin tệp tin
+            </h5>
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <span class="text-muted small">Tên tài liệu:</span>
+                    <div class="fw-semibold text-dark">{{ file.original_name }}</div>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted small">Chủ sở hữu:</span>
+                    <div class="fw-semibold text-dark">
+                        <i class="bi bi-person-circle text-primary me-1"></i>{{ file.owner.username }}
+                        {% if is_owner %}
+                            <span class="badge bg-primary-subtle text-primary border ms-1">Bạn</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted small">Kích thước:</span>
+                    <div class="fw-semibold text-dark">{{ (file.file_size / 1024)|round(1) }} KB ({{ file.file_size }} bytes)</div>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted small">Định dạng MIME:</span>
+                    <div class="fw-semibold text-dark">{{ file.mime_type }}</div>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted small">Tên lưu trữ trên máy chủ (UUID):</span>
+                    <div class="fw-semibold text-muted font-monospace small text-truncate" title="{{ file.stored_name }}">
+                        {{ file.stored_name }}
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted small">Mã hóa lưu trữ:</span>
+                    <div class="fw-semibold text-success small">
+                        <i class="bi bi-lock-fill me-1"></i>Fernet Symmetric Cipher
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cryptographic Integrity & Download Card -->
+        <div class="card-sec p-4">
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+                <i class="bi bi-shield-check text-primary me-2"></i> Kiểm tra tính toàn vẹn dữ liệu
+            </h5>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small fw-semibold">Mã băm SHA-256 gốc (lưu trữ trong Database):</span>
+                    <span class="text-muted small">64 ký tự Hex</span>
+                </div>
+                <div class="hash-code-block">
+                    <span id="fileSha256Hash">{{ file.sha256_hash }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="copyToClipboard('fileSha256Hash', this)">
+                        <i class="bi bi-clipboard"></i> Sao chép
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between p-3 rounded bg-light border mb-4">
+                <div>
+                    <span class="small text-muted d-block">Trạng thái toàn vẹn hiện tại:</span>
+                    {% if file.integrity_status == 'VALID' %}
+                        <span class="badge badge-sec-valid fs-6 mt-1">
+                            <i class="bi bi-check-circle-fill me-1"></i>HỢP LỆ (VALID)
+                        </span>
+                    {% elif file.integrity_status == 'TAMPERED' %}
+                        <span class="badge badge-sec-tampered fs-6 mt-1">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>BỊ GIẢ MẠO / LỖI GIẢI MÃ (TAMPERED)
+                        </span>
+                    {% else %}
+                        <span class="badge badge-sec-unknown fs-6 mt-1">
+                            <i class="bi bi-question-circle me-1"></i>CHƯA KIỂM ĐỊNH (UNKNOWN)
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if can_download %}
+                    {% if file.integrity_status == 'TAMPERED' %}
+                        <button class="btn btn-danger" disabled title="Tệp tin bị giả mạo. Download bị chặn.">
+                            <i class="bi bi-shield-slash-fill me-1"></i> Đã chặn tải xuống
+                        </button>
+                    {% else %}
+                        <a href="{{ url_for('files.download', file_id=file.id) }}" class="btn btn-primary-sec btn-lg">
+                            <i class="bi bi-download me-1"></i> Tải về máy
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <button class="btn btn-secondary" disabled title="Bạn chỉ có quyền xem thông tin (VIEW)">
+                        <i class="bi bi-eye-fill me-1"></i> Chỉ có quyền xem
+                    </button>
+                {% endif %}
+            </div>
+
+            <div class="small text-muted">
+                <i class="bi bi-info-circle me-1 text-primary"></i>
+                Khi bạn bấm nút <strong>Tải về máy</strong>, máy chủ sẽ giải mã bằng khóa Fernet, tự động tính toán lại mã băm SHA-256 trên nội dung giải mã và so sánh với giá trị băm trong cơ sở dữ liệu. Nếu phát hiện sai lệch dù chỉ 1 bit, lượt tải về sẽ bị lập tức ngăn chặn.
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Sharing & Permissions Management -->
+    <div class="col-lg-5">
+        <div class="card-sec p-4 h-100">
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+                <i class="bi bi-share text-primary me-2"></i> Phân quyền chia sẻ
+            </h5>
+
+            {% if is_owner %}
+                <!-- Share Form for Owner -->
+                <form method="POST" action="{{ url_for('files.share', file_id=file.id) }}" class="mb-4 p-3 bg-light rounded border">
+                    {{ share_form.hidden_tag() }}
+                    <h6 class="fw-semibold small text-dark mb-2">Thêm người được cấp quyền</h6>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold" for="username">Tên người nhận (Username):</label>
+                        {{ share_form.username(class="form-control form-control-sm", placeholder="Ví dụ: khoi hoặc chuong") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="permission">Quyền hạn truy cập:</label>
+                        {{ share_form.permission(class="form-select form-select-sm") }}
+                    </div>
+                    <button type="submit" class="btn btn-primary-sec btn-sm w-100">
+                        <i class="bi bi-person-plus-fill me-1"></i> Cấp quyền chia sẻ
+                    </button>
+                </form>
+
+                <!-- Currently Shared Users List -->
+                <h6 class="fw-semibold small text-dark mb-2">Danh sách tài khoản được chia sẻ:</h6>
+                {% if permissions %}
+                    <div class="list-group list-group-flush border rounded">
+                        {% for perm in permissions %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+                            <div>
+                                <strong class="text-dark">{{ perm.user.username }}</strong>
+                                <div class="small text-muted">{{ perm.user.email }}</div>
+                                <div>
+                                    {% if perm.permission == 'DOWNLOAD' %}
+                                        <span class="badge bg-success-subtle text-success border">DOWNLOAD (Xem & Tải)</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border">VIEW (Chỉ xem)</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <form action="{{ url_for('files.revoke', file_id=file.id, user_id=perm.user_id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn gỡ quyền truy cập của người dùng này?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Gỡ quyền chia sẻ">
+                                    <i class="bi bi-trash"></i> Gỡ
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small p-3 bg-light rounded text-center mb-0">
+                        Tệp tin này hiện chỉ có bạn (chủ sở hữu) có quyền truy cập.
+                    </p>
+                {% endif %}
+
+            {% else %}
+                <!-- For Shared Users (Read-only status) -->
+                <div class="alert alert-info py-3 px-3 mb-3">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-info-circle-fill me-2 fs-5 text-primary"></i>
+                        <strong>Bạn đang truy cập tệp được chia sẻ</strong>
+                    </div>
+                    <p class="small mb-0 mt-2">
+                        Quyền hạn của bạn: 
+                        {% if can_download %}
+                            <span class="badge bg-success">DOWNLOAD (Cho phép tải về)</span>
+                        {% else %}
+                            <span class="badge bg-secondary">VIEW (Chỉ xem metadata)</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <p class="text-muted small">
+                    Chỉ có chủ sở hữu tệp (<strong>{{ file.owner.username }}</strong>) mới có quyền cấp hoặc hủy quyền truy cập của người dùng khác.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

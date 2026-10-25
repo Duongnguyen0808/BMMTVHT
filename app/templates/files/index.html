@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Danh sách tài liệu — SecureShare{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Quản lý tài liệu</h2>
+        <p class="text-muted mb-0">Danh sách tài liệu của bạn và các tài liệu được người khác chia sẻ.</p>
+    </div>
+    <a href="{{ url_for('files.upload') }}" class="btn btn-primary-sec">
+        <i class="bi bi-cloud-arrow-up me-1"></i> Tải lên tài liệu mới
+    </a>
+</div>
+
+<!-- Tabs Navigation -->
+<ul class="nav nav-pills mb-3 border-bottom pb-2" id="filesTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="my-files-tab" data-bs-toggle="pill" data-bs-target="#my-files" type="button" role="tab" aria-controls="my-files" aria-selected="true">
+            <i class="bi bi-folder-fill me-1"></i> Tài liệu của tôi ({{ my_files|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="shared-tab" data-bs-toggle="pill" data-bs-target="#shared" type="button" role="tab" aria-controls="shared" aria-selected="false">
+            <i class="bi bi-people-fill me-1"></i> Được chia sẻ với tôi ({{ shared_items|length }})
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Contents -->
+<div class="tab-content" id="filesTabContent">
+    <!-- Tab 1: My Files -->
+    <div class="tab-pane fade show active" id="my-files" role="tabpanel" aria-labelledby="my-files-tab">
+        <div class="card-sec">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Tên tài liệu</th>
+                            <th>Kích thước</th>
+                            <th>Toàn vẹn (SHA-256)</th>
+                            <th>Quyền hạn</th>
+                            <th>Ngày tạo</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if my_files %}
+                            {% for f in my_files %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-file-earmark-lock text-primary fs-5 me-2"></i>
+                                        <div>
+                                            <a href="{{ url_for('files.detail', file_id=f.id) }}" class="fw-semibold text-dark text-decoration-none d-block">
+                                                {{ f.original_name }}
+                                            </a>
+                                            <small class="text-muted font-monospace" style="font-size: 0.75rem;">
+                                                Hash: {{ f.sha256_hash[:16] }}...
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ (f.file_size / 1024)|round(1) }} KB</td>
+                                <td>
+                                    {% if f.integrity_status == 'VALID' %}
+                                        <span class="badge badge-sec-valid"><i class="bi bi-shield-check me-1"></i>Hợp lệ</span>
+                                    {% elif f.integrity_status == 'TAMPERED' %}
+                                        <span class="badge badge-sec-tampered"><i class="bi bi-exclamation-triangle-fill me-1"></i>Bị giả mạo</span>
+                                    {% else %}
+                                        <span class="badge badge-sec-unknown">Chưa kiểm tra</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-primary-subtle text-primary border">Chủ sở hữu (FULL)</span></td>
+                                <td class="text-muted small">{{ f.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('files.detail', file_id=f.id) }}" class="btn btn-sm btn-light border py-1 px-2" title="Chi tiết & Chia sẻ">
+                                        <i class="bi bi-gear me-1"></i> Quản lý
+                                    </a>
+                                    <a href="{{ url_for('files.download', file_id=f.id) }}" class="btn btn-sm btn-primary-sec py-1 px-2 ms-1" title="Tải xuống">
+                                        <i class="bi bi-download me-1"></i> Tải về
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-folder-x fs-1 d-block mb-2 text-secondary"></i>
+                                    Bạn chưa tải lên tài liệu nào. Bấm nút <strong>"Tải lên tài liệu mới"</strong> để bắt đầu.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Shared With Me -->
+    <div class="tab-pane fade" id="shared" role="tabpanel" aria-labelledby="shared-tab">
+        <div class="card-sec">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Tên tài liệu</th>
+                            <th>Chủ sở hữu</th>
+                            <th>Kích thước</th>
+                            <th>Quyền truy cập</th>
+                            <th>Trạng thái toàn vẹn</th>
+                            <th>Ngày được chia sẻ</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if shared_items %}
+                            {% for item in shared_items %}
+                            {% set f = item.file %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-file-earmark-arrow-down text-success fs-5 me-2"></i>
+                                        <div>
+                                            <a href="{{ url_for('files.detail', file_id=f.id) }}" class="fw-semibold text-dark text-decoration-none d-block">
+                                                {{ f.original_name }}
+                                            </a>
+                                            <small class="text-muted font-monospace" style="font-size: 0.75rem;">
+                                                Hash: {{ f.sha256_hash[:16] }}...
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-person me-1"></i>{{ f.owner.username if f.owner else 'Unknown' }}
+                                    </span>
+                                </td>
+                                <td>{{ (f.file_size / 1024)|round(1) }} KB</td>
+                                <td>
+                                    {% if item.permission == 'DOWNLOAD' %}
+                                        <span class="badge bg-success-subtle text-success border">DOWNLOAD (Toàn quyền đọc)</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border">VIEW (Chỉ xem metadata)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if f.integrity_status == 'VALID' %}
+                                        <span class="badge badge-sec-valid"><i class="bi bi-shield-check me-1"></i>Hợp lệ</span>
+                                    {% elif f.integrity_status == 'TAMPERED' %}
+                                        <span class="badge badge-sec-tampered"><i class="bi bi-exclamation-triangle-fill me-1"></i>Bị giả mạo</span>
+                                    {% else %}
+                                        <span class="badge badge-sec-unknown">Chưa kiểm tra</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted small">{{ item.shared_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('files.detail', file_id=f.id) }}" class="btn btn-sm btn-light border py-1 px-2">
+                                        <i class="bi bi-eye"></i> Chi tiết
+                                    </a>
+                                    {% if item.permission == 'DOWNLOAD' %}
+                                    <a href="{{ url_for('files.download', file_id=f.id) }}" class="btn btn-sm btn-primary-sec py-1 px-2 ms-1">
+                                        <i class="bi bi-download"></i> Tải về
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                                    Chưa có tài liệu nào được chia sẻ với bạn.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
