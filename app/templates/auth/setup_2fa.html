@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Cài đặt Xác thực 2 bước (2FA) — SecureShare{% endblock %}
+
+{% block content %}
+<style>
+@keyframes shakeAnimation {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+.shake-box {
+    animation: shakeAnimation 0.4s ease-in-out;
+}
+.live-badge-pulse {
+    animation: pulseGlow 2s infinite;
+}
+@keyframes pulseGlow {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+</style>
+
+<div class="row justify-content-center py-4">
+    <div class="col-lg-8">
+        <!-- Card Header & Status -->
+        <div class="card-sec p-4 mb-4 border-0">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-light text-primary" style="width: 52px; height: 52px; font-size: 1.6rem; border-radius: 14px;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">Xác thực 2 bước (Two-Factor Authentication - 2FA)</h4>
+                        <p class="text-muted small mb-0">Tiêu chuẩn bảo mật RFC 6238 / NIST SP 800-63B AAL2</p>
+                    </div>
+                </div>
+                <div>
+                    {% if current_user.is_2fa_enabled %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fs-6 fw-semibold">
+                        <i class="bi bi-shield-fill-check me-1"></i> Đang kích hoạt
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill fs-6 fw-semibold">
+                        <i class="bi bi-shield-slash me-1"></i> Chưa kích hoạt
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if current_user.is_2fa_enabled %}
+        <!-- 2FA Active State -->
+        <div class="card-sec p-4 p-md-5 border-0">
+            <div class="text-center py-3">
+                <div class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px;">
+                    <i class="bi bi-patch-check-fill fs-1"></i>
+                </div>
+                <h4 class="fw-bold text-success mb-2">Tài khoản của bạn đã được bảo vệ an toàn!</h4>
+                <p class="text-secondary max-w-600 mx-auto mb-4">
+                    Mỗi lần đăng nhập, hệ thống sẽ yêu cầu cả <strong>Mật khẩu</strong> và <strong>Mã 6 số từ Google Authenticator hoặc 2fa.live</strong>. Ngay cả khi kẻ tấn công biết mật khẩu của bạn, họ cũng không thể truy cập tài khoản.
+                </p>
+
+                <div class="row g-3 justify-content-center mb-4 text-start">
+                    <div class="col-md-5">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="small text-muted mb-1"><i class="bi bi-cpu me-1"></i> Thuật toán</div>
+                            <div class="fw-bold text-dark">TOTP / HMAC-SHA1 (RFC 6238)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="small text-muted mb-1"><i class="bi bi-hourglass-split me-1"></i> Chu kỳ làm mới</div>
+                            <div class="fw-bold text-dark">30 giây / Mã 6 chữ số</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-top pt-4 mt-2">
+                    <h6 class="text-muted mb-3 small text-uppercase">Vùng nguy hiểm</h6>
+                    <form method="POST" action="{{ url_for('auth.disable_2fa') }}" onsubmit="return confirm('Bạn có chắc chắn muốn tắt Xác thực 2 bước? Tài khoản của bạn sẽ giảm độ an toàn.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-shield-x me-2"></i> Tắt xác thực 2 bước (2FA)
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- 2FA Inactive / Setup Flow -->
+        <div class="card-sec p-4 p-md-5 border-0" id="cardSetup2FA">
+            <h5 class="fw-bold mb-3"><i class="bi bi-qr-code-scan text-primary me-2"></i> Kích hoạt bảo vệ 2 lớp</h5>
+            <p class="text-muted small mb-4">Hỗ trợ quét qua <strong>Google Authenticator</strong> trên điện thoại HOẶC dùng trực tiếp trang <strong>2fa.live</strong> trên máy tính:</p>
+
+            <div class="row g-4 align-items-center mb-4">
+                <!-- Step 1: QR & Secret -->
+                <div class="col-md-5 text-center">
+                    <div class="p-3 bg-white rounded-3 border shadow-sm d-inline-block">
+                        <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code 2FA" class="img-fluid" style="width: 190px; height: 190px;">
+                    </div>
+                    <div class="mt-2 text-muted small fw-semibold">Quét mã bằng Authenticator app</div>
+                </div>
+
+                <div class="col-md-7">
+                    <!-- Option A: App -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold small text-dark"><i class="bi bi-phone me-1 text-primary"></i> Cách 1: Dùng App điện thoại</div>
+                            <span class="badge bg-secondary-subtle text-secondary small">Phổ biến</span>
+                        </div>
+                        <div class="small text-muted">Mở <strong>Google Authenticator</strong> hoặc Microsoft Authenticator &rarr; Quét hình QR bên cạnh.</div>
+                    </div>
+
+                    <!-- Option B: 2fa.live (Web-based) -->
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold small text-primary"><i class="bi bi-laptop me-1"></i> Cách 2: Dùng 2fa.live trên máy tính</div>
+                            <a href="https://2fa.live" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 small" style="font-size: 0.78rem;">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> Mở 2fa.live
+                            </a>
+                        </div>
+                        <div class="small text-muted mb-2">Sao chép khóa bí mật bên dưới &rarr; Dán vào trang <strong>2fa.live</strong> &rarr; Nhấn Submit:</div>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control font-monospace bg-white fw-bold text-primary" id="secretKeyText" value="{{ secret }}" readonly>
+                            <button class="btn btn-primary-sec" type="button" id="btnCopySecret" onclick="copySecretKey()">
+                                <i class="bi bi-clipboard me-1"></i> <span id="copyBtnText">Sao chép</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Error Alert Box -->
+            <div id="liveSetupError" class="alert alert-danger d-none border-0 rounded-3 py-2 px-3 mb-3 small d-flex align-items-center shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger me-2"></i>
+                <span id="liveSetupErrorText">Mã 2FA không hợp lệ.</span>
+            </div>
+
+            <!-- Verification Form -->
+            <div class="bg-light p-4 rounded-3 border">
+                <form method="POST" action="{{ url_for('auth.setup_2fa') }}" id="formSetup2FA" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold small mb-1" for="otpInput">
+                                <i class="bi bi-key-fill text-primary me-1"></i> Nhập mã 6 chữ số từ 2fa.live hoặc Google Authenticator:
+                            </label>
+                            {{ form.otp_code(
+                                class="form-control form-control-lg text-center font-monospace fw-bold fs-3 text-primary",
+                                id="otpInput",
+                                placeholder="000000",
+                                maxlength="6",
+                                autocomplete="off",
+                                inputmode="numeric",
+                                style="letter-spacing: 0.35rem; height: 54px;"
+                            ) }}
+                            {% for error in form.otp_code.errors %}
+                                <div class="text-danger small mt-1 fw-semibold" id="serverSetupError">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-5 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary-sec btn-lg w-100 shadow-sm" style="height: 54px;">
+                                <i class="bi bi-shield-fill-check me-2"></i> Xác nhận & Bật 2FA
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="mt-3 text-center">
+            <a href="{{ url_for('files.dashboard') }}" class="text-secondary text-decoration-none small">
+                <i class="bi bi-arrow-left me-1"></i> Trở về Bảng điều khiển
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function copySecretKey() {
+    const secret = document.getElementById('secretKeyText').value;
+    navigator.clipboard.writeText(secret).then(() => {
+        const btnText = document.getElementById('copyBtnText');
+        btnText.innerText = 'Đã chép!';
+        setTimeout(() => { btnText.innerText = 'Sao chép'; }, 2500);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otpInput');
+    const form = document.getElementById('formSetup2FA');
+    const card = document.getElementById('cardSetup2FA');
+    const liveError = document.getElementById('liveSetupError');
+    const liveErrorText = document.getElementById('liveSetupErrorText');
+    const serverError = document.getElementById('serverSetupError');
+    const flashDanger = document.querySelector('.alert-danger');
+
+    if (otpInput) {
+        if (flashDanger || serverError) {
+            if (card) card.classList.add('shake-box');
+            otpInput.classList.add('is-invalid');
+        }
+
+        // Live input: remove non-digits and dynamically clear previous errors!
+        otpInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+
+            // Khi người dùng gõ nhập lại, tự động ẩn thông báo lỗi
+            if (liveError) liveError.classList.add('d-none');
+            if (serverError) serverError.style.display = 'none';
+            otpInput.classList.remove('is-invalid');
+            if (card) card.classList.remove('shake-box');
+
+            if (flashDanger) {
+                flashDanger.style.transition = 'opacity 0.3s ease';
+                flashDanger.style.opacity = '0.35';
+            }
+        });
+    }
+
+    if (form && otpInput) {
+        form.addEventListener('submit', function(e) {
+            const val = otpInput.value.trim();
+            if (val.length !== 6) {
+                e.preventDefault();
+                liveErrorText.innerHTML = '<strong>Mã chưa đủ 6 số!</strong> Vui lòng dán đủ 6 chữ số từ 2fa.live hoặc Google Authenticator.';
+                liveError.classList.remove('d-none');
+                otpInput.classList.add('is-invalid');
+                if (card) {
+                    card.classList.remove('shake-box');
+                    void card.offsetWidth;
+                    card.classList.add('shake-box');
+                }
+                otpInput.focus();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

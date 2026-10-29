@@ -67,6 +67,79 @@ def load_encrypted_file(stored_name: str) -> bytes:
         return f.read()
 
 
+def inspect_magic_bytes(raw_bytes: bytes, filename: str) -> None:
+    """
+    Deep Binary Inspection (OWASP ASVS V5.2): Validate Magic Bytes / File Signatures
+    to prevent evasion attacks like renaming 'malware.exe' to 'report.pdf'.
+    """
+    if len(raw_bytes) < 4:
+        raise FileValidationError("Tệp không có dữ liệu nhị phân hợp lệ hoặc quá ngắn.")
+
+    # 1. Detect Dangerous Executable & Script Signatures FIRST (regardless of extension)
+    # Windows PE Executable (DOS Header 'MZ' - 0x4D 0x5A)
+    if raw_bytes[:2] == b'MZ':
+        raise FileValidationError(
+            "Phát hiện chữ ký nhị phân độc hại (Magic Bytes: 'MZ' - Windows PE Executable)! "
+            "Hệ thống nghiêm cấm tải lên tệp thực thi ngụy trang."
+        )
+
+    # Linux ELF Executable
+    if raw_bytes[:4] == b'\x7fELF':
+        raise FileValidationError(
+            "Phát hiện chữ ký nhị phân độc hại (Magic Bytes: 'ELF' - Linux Executable Binary)!"
+        )
+
+    # Shell script '#!'
+    if raw_bytes[:2] == b'#!':
+        raise FileValidationError(
+            "Phát hiện chữ ký kịch bản thực thi (Magic Bytes: '#!' - Shell Script Shebang)!"
+        )
+
+    # Web Script tags embedded at beginning
+    lower_head = raw_bytes[:64].lower()
+    if b'<?php' in lower_head or b'<script' in lower_head:
+        raise FileValidationError(
+            "Phát hiện mã kịch bản Web nhúng nguy hiểm (Web Shell / Script Tag)!"
+        )
+
+    # 2. Validate declared extension against true magic bytes
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+    if ext == 'pdf':
+        if not raw_bytes.startswith(b'%PDF-'):
+            raise FileValidationError(
+                "Chữ ký nhị phân không khớp (Magic Bytes Mismatch)! "
+                "Tệp mang đuôi .pdf nhưng không bắt đầu bằng chữ ký chuẩn '%PDF-'."
+            )
+    elif ext == 'png':
+        if not raw_bytes.startswith(b'\x89PNG\r\n\x1a\n'):
+            raise FileValidationError(
+                "Chữ ký nhị phân không khớp (Magic Bytes Mismatch)! "
+                "Tệp mang đuôi .png nhưng không có chữ ký chuẩn '\\x89PNG'."
+            )
+    elif ext in ['jpg', 'jpeg']:
+        if not raw_bytes.startswith(b'\xff\xd8\xff'):
+            raise FileValidationError(
+                "Chữ ký nhị phân không khớp (Magic Bytes Mismatch)! "
+                "Tệp mang đuôi .jpg/.jpeg nhưng không có chữ ký chuẩn JPEG."
+            )
+    elif ext in ['docx', 'xlsx']:
+        # DOCX and XLSX are OpenXML PKZIP archives
+        if not raw_bytes.startswith(b'PK\x03\x04'):
+            raise FileValidationError(
+                "Chữ ký nhị phân không khớp (Magic Bytes Mismatch)! "
+                "Tệp mang đuôi .docx/.xlsx nhưng không phải là vùng lưu trữ OpenXML PKZIP hợp lệ."
+            )
+    elif ext == 'txt':
+        # Must be valid UTF-8/ASCII without embedded null bytes
+        try:
+            raw_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            raise FileValidationError(
+                "Nội dung tệp .txt không phải là văn bản thuần hợp lệ (chứa dữ liệu nhị phân không đọc được)."
+            )
+
+
 def process_file_upload(file_storage, owner_id: int) -> FileRecord:
     """Process an uploaded file: validate, hash, encrypt, save to disk and database."""
     original_filename = secure_filename(file_storage.filename or '')
@@ -81,6 +154,9 @@ def process_file_upload(file_storage, owner_id: int) -> FileRecord:
 
     if not validate_file_size(file_size):
         raise FileValidationError("Kích thước tệp vượt quá giới hạn cho phép (tối đa 10 MB) hoặc tệp rỗng.")
+
+    # Deep Binary Inspection (Magic Bytes)
+    inspect_magic_bytes(raw_bytes, original_filename)
 
     # 1. Calculate SHA-256 hash on original plaintext bytes
     sha256_hash = calculate_sha256(raw_bytes)

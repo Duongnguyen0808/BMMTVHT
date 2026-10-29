@@ -81,6 +81,7 @@
                             <li><h6 class="dropdown-header">{{ current_user.email }}</h6></li>
                             <li><a class="dropdown-item" href="{{ url_for('files.dashboard') }}"><i class="bi bi-grid me-2"></i> Bảng điều khiển</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('files.activity') }}"><i class="bi bi-journal-text me-2"></i> Nhật ký bảo mật</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.setup_2fa') }}"><i class="bi bi-shield-check me-2 text-primary"></i> Bảo mật 2FA {% if current_user.is_2fa_enabled %}<span class="badge bg-success-subtle text-success ms-1">Bật</span>{% endif %}</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form action="{{ url_for('auth.logout') }}" method="POST" class="px-2 py-1">

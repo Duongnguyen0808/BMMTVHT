@@ -1,6 +1,8 @@
 import io
+from datetime import datetime, timezone, timedelta
+import secrets
 from flask import render_template, redirect, url_for, flash, request, abort, send_file, current_app
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, logout_user
 from app.files import bp
 from app.files.forms import UploadForm, ShareForm
 from app.files.services import (
@@ -12,9 +14,10 @@ from app.files.services import (
     FileValidationError,
     allowed_file
 )
-from app.models import FileRecord, FilePermission, User, AuditLog
+from app.models import FileRecord, FilePermission, User, AuditLog, SharedLink
 from app.extensions import db, csrf
 from app.audit.services import log_security_event
+from app.security.watermark import apply_forensic_watermark
 from app.files.test_cases_catalog import TEST_CASES_DATA, CATEGORIES
 
 
@@ -120,6 +123,26 @@ def upload():
 def detail(file_id):
     file_record = db.get_or_404(FileRecord, file_id)
 
+    # 1. Active Defense: Honeypot Trap Trigger Check
+    if file_record.is_honeypot and not current_user.is_admin():
+        user = current_user._get_current_object()
+        user.locked_until = datetime.now(timezone.utc) + timedelta(hours=24)
+        user.failed_login_attempts = 99
+        db.session.commit()
+
+        log_security_event(
+            action='HONEYPOT_TRIGGERED',
+            status='CRITICAL',
+            message=f"BẪY AN NINH KÍCH HOẠT: Tài khoản '{user.username}' đã xâm nhập tệp bẫy Honeypot ID {file_id} ('{file_record.original_name}'). Tài khoản đã bị khóa ngay lập tức!",
+            user=user,
+            target_type='HONEYPOT',
+            target_id=file_id
+        )
+        username = user.username
+        file_name = file_record.original_name
+        logout_user()
+        return render_template('errors/honeypot_breach.html', username=username, file_name=file_name), 403
+
     # Authorization Check
     if not user_can_view_file(current_user, file_record):
         log_security_event(
@@ -134,8 +157,9 @@ def detail(file_id):
     is_owner = (file_record.owner_id == current_user.id)
     can_download = user_can_download_file(current_user, file_record)
 
-    # Current permissions list for owner
+    # Current permissions and shared links list for owner
     permissions = FilePermission.query.filter_by(file_id=file_record.id).all()
+    shared_links = SharedLink.query.filter_by(file_id=file_record.id).all()
     share_form = ShareForm()
 
     return render_template(
@@ -144,6 +168,7 @@ def detail(file_id):
         is_owner=is_owner,
         can_download=can_download,
         permissions=permissions,
+        shared_links=shared_links,
         share_form=share_form
     )
 
@@ -153,7 +178,27 @@ def detail(file_id):
 def download(file_id):
     file_record = db.get_or_404(FileRecord, file_id)
 
-    # 1. Authorization check
+    # 1. Active Defense: Honeypot Trap Trigger Check
+    if file_record.is_honeypot and not current_user.is_admin():
+        user = current_user._get_current_object()
+        user.locked_until = datetime.now(timezone.utc) + timedelta(hours=24)
+        user.failed_login_attempts = 99
+        db.session.commit()
+
+        log_security_event(
+            action='HONEYPOT_TRIGGERED',
+            status='CRITICAL',
+            message=f"BẪY AN NINH KÍCH HOẠT: Tài khoản '{user.username}' đã cố tải tệp bẫy Honeypot ID {file_id} ('{file_record.original_name}'). Tài khoản đã bị khóa ngay lập tức!",
+            user=user,
+            target_type='HONEYPOT',
+            target_id=file_id
+        )
+        username = user.username
+        file_name = file_record.original_name
+        logout_user()
+        return render_template('errors/honeypot_breach.html', username=username, file_name=file_name), 403
+
+    # 2. Authorization check
     if not user_can_download_file(current_user, file_record):
         log_security_event(
             action='ACCESS_DENIED',
@@ -164,7 +209,7 @@ def download(file_id):
         )
         abort(403)
 
-    # 2. Decrypt & Verify Integrity
+    # 3. Decrypt & Verify Integrity
     is_valid, decrypted_bytes = verify_file_integrity(file_record)
 
     if not is_valid or decrypted_bytes is None:
@@ -174,7 +219,25 @@ def download(file_id):
             file=file_record
         ), 400
 
-    # 3. Log success download & integrity ok
+    # 4. Forensic Watermarking (DLP)
+    # Apply watermark if requested with ?watermark=1
+    should_watermark = (request.args.get('watermark') == '1')
+    if should_watermark:
+        decrypted_bytes = apply_forensic_watermark(
+            decrypted_bytes,
+            file_record.original_name,
+            current_user.username,
+            request.remote_addr or '127.0.0.1'
+        )
+        log_security_event(
+            action='DLP_WATERMARK_EMBEDDED',
+            status='SUCCESS',
+            message=f"Đã nhúng chữ ký mờ truy vết rò rỉ (Forensic Watermark) cho '{current_user.username}' khi tải tệp '{file_record.original_name}'.",
+            target_type='FILE',
+            target_id=file_record.id
+        )
+
+    # 5. Log success download & integrity ok
     log_security_event(
         action='FILE_INTEGRITY_OK',
         status='SUCCESS',
@@ -287,6 +350,127 @@ def revoke(file_id, user_id):
         flash("Không tìm thấy thông tin chia sẻ cần gỡ.", 'warning')
 
     return redirect(url_for('files.detail', file_id=file_id))
+
+
+@bp.route('/files/<int:file_id>/create-link', methods=['POST'])
+@login_required
+def create_share_link(file_id):
+    file_record = db.get_or_404(FileRecord, file_id)
+    if not user_can_manage_file(current_user, file_record):
+        abort(403)
+
+    token = secrets.token_urlsafe(16)
+    passcode = request.form.get('passcode', '').strip()
+    expire_minutes = int(request.form.get('expire_minutes', 60))
+    max_downloads = int(request.form.get('max_downloads', 1))
+
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expire_minutes) if expire_minutes > 0 else None
+
+    link = SharedLink(
+        file_id=file_record.id,
+        created_by_id=current_user.id,
+        token=token,
+        max_downloads=max_downloads,
+        expires_at=expires_at
+    )
+    if passcode:
+        link.set_passcode(passcode)
+    db.session.add(link)
+    db.session.commit()
+
+    log_security_event(
+        action='SHARE_LINK_CREATED',
+        status='SUCCESS',
+        message=f"Tạo liên kết chia sẻ tự hủy (Tối đa {max_downloads} lượt tải, hết hạn sau {expire_minutes} phút, mật mã: {'Có' if passcode else 'Không'}) cho tệp '{file_record.original_name}'.",
+        target_type='FILE',
+        target_id=file_record.id
+    )
+
+    flash("Đã tạo liên kết chia sẻ bảo mật (Zero-Trust Link) thành công!", "success")
+    return redirect(url_for('files.detail', file_id=file_record.id))
+
+
+@bp.route('/files/<int:file_id>/revoke-link/<int:link_id>', methods=['POST'])
+@login_required
+def revoke_share_link(file_id, link_id):
+    file_record = db.get_or_404(FileRecord, file_id)
+    if not user_can_manage_file(current_user, file_record):
+        abort(403)
+
+    link = db.session.get(SharedLink, link_id)
+    if link and link.file_id == file_record.id:
+        db.session.delete(link)
+        db.session.commit()
+        log_security_event(
+            action='SHARE_LINK_REVOKED',
+            status='SUCCESS',
+            message=f"Đã thu hồi liên kết chia sẻ tệp '{file_record.original_name}'.",
+            target_type='FILE',
+            target_id=file_record.id
+        )
+        flash("Đã thu hồi liên kết chia sẻ an toàn.", "info")
+
+    return redirect(url_for('files.detail', file_id=file_record.id))
+
+
+@bp.route('/share/link/<token>', methods=['GET', 'POST'])
+def view_shared_link(token):
+    link = SharedLink.query.filter_by(token=token).first()
+    if not link or not link.is_valid():
+        return render_template('files/shared_link_expired.html', link=link), 410
+
+    file_record = link.file
+    error_msg = None
+
+    if request.method == 'POST':
+        entered_passcode = request.form.get('passcode', '').strip()
+        if link.passcode_hash and not link.check_passcode(entered_passcode):
+            error_msg = "Mật mã truy cập không chính xác. Vui lòng thử lại!"
+            log_security_event(
+                action='SHARE_LINK_FAILED',
+                status='FAILED',
+                message=f"Nhập sai mật mã truy cập liên kết chia sẻ tệp '{file_record.original_name}'.",
+                target_type='SHARE_LINK'
+            )
+        else:
+            # Passcode correct / no passcode -> Deliver file & increment count
+            is_valid, decrypted_bytes = verify_file_integrity(file_record)
+            if not is_valid or decrypted_bytes is None:
+                flash("Tệp có dấu hiệu bị giả mạo. Tải xuống đã bị khóa!", "danger")
+                return render_template('errors/tampered.html', file=file_record), 400
+
+            link.download_count += 1
+            db.session.commit()
+
+            # Dynamic DLP watermark for guest link
+            decrypted_bytes = apply_forensic_watermark(
+                decrypted_bytes,
+                file_record.original_name,
+                f"Guest Link (Share by: {link.creator.username})",
+                request.remote_addr or '127.0.0.1'
+            )
+
+            log_security_event(
+                action='SHARE_LINK_DOWNLOADED',
+                status='SUCCESS',
+                message=f"Tải tệp '{file_record.original_name}' qua liên kết chia sẻ bảo mật (Lần tải {link.download_count}/{link.max_downloads}).",
+                target_type='SHARE_LINK',
+                target_id=link.id
+            )
+
+            return send_file(
+                io.BytesIO(decrypted_bytes),
+                mimetype=file_record.mime_type,
+                as_attachment=True,
+                download_name=file_record.original_name
+            )
+
+    return render_template(
+        'files/shared_link_view.html',
+        link=link,
+        file=file_record,
+        error_msg=error_msg
+    )
 
 
 @bp.route('/activity')

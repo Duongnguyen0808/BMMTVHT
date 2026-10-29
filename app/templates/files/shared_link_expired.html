@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Liên kết chia sẻ đã hết hạn — SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-7 col-lg-6">
+        <div class="card-sec p-4 p-md-5 border-0 text-center shadow-sm">
+            <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center mb-3" style="width: 76px; height: 76px;">
+                <i class="bi bi-hourglass-bottom fs-1"></i>
+            </div>
+
+            <h4 class="fw-bold mb-2">Liên kết đã tự hủy hoặc hết hạn!</h4>
+            <p class="text-secondary small mb-4">
+                Theo chính sách bảo mật Zero-Trust của SecureShare, liên kết chia sẻ này đã đạt giới hạn số lần tải cho phép hoặc đã vượt quá thời gian hiệu lực.
+            </p>
+
+            <div class="p-3 bg-light rounded-3 border text-start small mb-4">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Chính sách bảo mật:</span>
+                    <strong class="text-primary">Burn-After-Reading / Tự hủy</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Trạng thái:</span>
+                    <span class="badge bg-danger-subtle text-danger border">Không còn khả dụng</span>
+                </div>
+            </div>
+
+            <a href="{{ url_for('files.home') }}" class="btn btn-outline-sec">
+                <i class="bi bi-house me-1"></i> Trở về Trang chủ
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

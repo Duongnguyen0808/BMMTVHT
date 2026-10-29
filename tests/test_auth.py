@@ -108,3 +108,35 @@ def test_tc06_unauthenticated_dashboard_redirect(client):
     res = client.get('/dashboard')
     assert res.status_code == 302
     assert '/login' in res.headers['Location']
+
+
+def test_2fa_totp_generation_and_login_flow(client, create_user):
+    """2FA: Verify secret generation, login intercept, invalid OTP rejection, and successful login."""
+    import pyotp
+    from app.extensions import db
+
+    user = create_user(username='totp_hero', email='totp@example.com', password='Password@123')
+    secret = user.generate_totp_secret()
+    user.is_2fa_enabled = True
+    db.session.commit()
+
+    # Verify secret is 32 base32 characters
+    assert len(secret) == 32
+    totp = pyotp.TOTP(secret)
+
+    # 1. Login with password -> Redirects to /login/2fa
+    res_step1 = client.post('/login', data={'username_or_email': 'totp_hero', 'password': 'Password@123'}, follow_redirects=False)
+    assert res_step1.status_code == 302
+    assert '/login/2fa' in res_step1.headers.get('Location', '')
+
+    # 2. Wrong OTP -> Rejected
+    res_step2 = client.post('/login/2fa', data={'otp_code': '000000'}, follow_redirects=True)
+    assert res_step2.status_code == 200
+    assert b"kh\xc3\xb4ng ch\xc3\xadnh x\xc3\xa1c" in res_step2.data
+
+    # 3. Valid OTP -> Logged in successfully
+    valid_code = totp.now()
+    res_step3 = client.post('/login/2fa', data={'otp_code': valid_code}, follow_redirects=True)
+    assert res_step3.status_code == 200
+    assert b"totp_hero" in res_step3.data
+

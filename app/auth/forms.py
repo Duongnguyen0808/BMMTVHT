@@ -72,3 +72,15 @@ class LoginForm(FlaskForm):
     )
     remember_me = BooleanField('Ghi nhớ đăng nhập')
     submit = SubmitField('Đăng nhập')
+
+
+class Verify2FAForm(FlaskForm):
+    otp_code = StringField(
+        'Mã bảo mật 6 số',
+        validators=[
+            DataRequired(message="Vui lòng nhập mã bảo mật 6 số."),
+            Length(min=6, max=6, message="Mã bảo mật gồm đúng 6 chữ số.")
+        ]
+    )
+    submit = SubmitField('Xác nhận & Đăng nhập')
+

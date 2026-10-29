@@ -87,3 +87,33 @@ def test_tc10_storage_file_is_encrypted(client, create_user, auth_client, app):
     assert raw_plaintext not in on_disk_bytes
     # Fernet ciphertext starts with 'gAAAAA' (base64)
     assert on_disk_bytes.startswith(b'gAAAAA')
+
+
+def test_deep_inspection_magic_bytes_blocks_disguised_exe(client, create_user, auth_client):
+    """Deep Inspection: Detect & block PE executable disguised as PDF."""
+    create_user(username='spoof_tester', email='spoof@example.com', password='Password@123')
+    auth_client.login('spoof_tester', 'Password@123')
+
+    # Spoofed file: .pdf extension but binary header is 'MZ'
+    fake_exe_bytes = b"MZ" + b"\x00" * 30 + b"BinaryPayload"
+    data = {'file': (io.BytesIO(fake_exe_bytes), 'renamed_evil.pdf')}
+
+    res = client.post('/files/upload', data=data, content_type='multipart/form-data', follow_redirects=True)
+    assert res.status_code == 400
+    assert b"Magic Bytes" in res.data
+    assert FileRecord.query.filter_by(original_name='renamed_evil.pdf').first() is None
+
+
+def test_deep_inspection_magic_bytes_blocks_script_injection(client, create_user, auth_client):
+    """Deep Inspection: Detect & block web script disguised as image."""
+    create_user(username='script_attacker', email='attacker@example.com', password='Password@123')
+    auth_client.login('script_attacker', 'Password@123')
+
+    script_bytes = b"<?php echo 'malicious webshell'; ?>"
+    data = {'file': (io.BytesIO(script_bytes), 'fake_avatar.png')}
+
+    res = client.post('/files/upload', data=data, content_type='multipart/form-data', follow_redirects=True)
+    assert res.status_code == 400
+    assert b"Magic Bytes" in res.data or b"nguy hi" in res.data
+    assert FileRecord.query.filter_by(original_name='fake_avatar.png').first() is None
+

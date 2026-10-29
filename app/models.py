@@ -17,6 +17,10 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     last_login_at = db.Column(db.DateTime, nullable=True)
 
+    # 2FA / TOTP (RFC 6238)
+    totp_secret = db.Column(db.String(64), nullable=True)
+    is_2fa_enabled = db.Column(db.Boolean, default=False, nullable=False)
+
     # Relationships
     owned_files = db.relationship('FileRecord', back_populates='owner', cascade='all, delete-orphan')
     permissions = db.relationship('FilePermission', back_populates='user', cascade='all, delete-orphan')
@@ -29,6 +33,26 @@ class User(UserMixin, db.Model):
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
+
+    def generate_totp_secret(self) -> str:
+        import pyotp
+        if not self.totp_secret:
+            self.totp_secret = pyotp.random_base32()
+        return self.totp_secret
+
+    def get_totp_uri(self) -> str:
+        import pyotp
+        if not self.totp_secret:
+            self.generate_totp_secret()
+        totp = pyotp.TOTP(self.totp_secret)
+        return totp.provisioning_uri(name=self.email, issuer_name="SecureShare")
+
+    def verify_totp(self, token: str) -> bool:
+        import pyotp
+        if not self.totp_secret or not token:
+            return False
+        totp = pyotp.TOTP(self.totp_secret)
+        return bool(totp.verify(str(token).strip().replace(" ", ""), valid_window=1))
 
     def is_locked(self) -> bool:
         if self.locked_until:
@@ -56,15 +80,60 @@ class FileRecord(db.Model):
     file_size = db.Column(db.Integer, nullable=False)  # size in bytes
     sha256_hash = db.Column(db.String(64), nullable=False, index=True)
     integrity_status = db.Column(db.String(32), default='VALID', nullable=False)
+    is_honeypot = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     owner = db.relationship('User', back_populates='owned_files')
     permissions = db.relationship('FilePermission', back_populates='file', cascade='all, delete-orphan')
+    shared_links = db.relationship('SharedLink', back_populates='file', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f"<FileRecord id={self.id} name='{self.original_name}' owner={self.owner_id} status='{self.integrity_status}'>"
+
+
+class SharedLink(db.Model):
+    __tablename__ = 'shared_links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    file_id = db.Column(db.Integer, db.ForeignKey('file_records.id'), nullable=False, index=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    passcode_hash = db.Column(db.String(256), nullable=True)  # Optional passcode
+    max_downloads = db.Column(db.Integer, default=1, nullable=False)
+    download_count = db.Column(db.Integer, default=0, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    file = db.relationship('FileRecord', back_populates='shared_links')
+    creator = db.relationship('User')
+
+    def set_passcode(self, passcode: str):
+        if passcode:
+            self.passcode_hash = generate_password_hash(passcode, method='pbkdf2:sha256')
+        else:
+            self.passcode_hash = None
+
+    def check_passcode(self, passcode: str) -> bool:
+        if not self.passcode_hash:
+            return True
+        return check_password_hash(self.passcode_hash, passcode)
+
+    def is_expired(self) -> bool:
+        if self.expires_at:
+            now = datetime.now(timezone.utc)
+            if self.expires_at.tzinfo is None:
+                return datetime.now(timezone.utc).replace(tzinfo=None) > self.expires_at
+            return now > self.expires_at
+        return False
+
+    def is_exhausted(self) -> bool:
+        return self.download_count >= self.max_downloads
+
+    def is_valid(self) -> bool:
+        return not self.is_expired() and not self.is_exhausted()
 
 
 class FilePermission(db.Model):

@@ -129,7 +129,7 @@
     <div>
         <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-light border mb-2">
             <span class="badge bg-success rounded-pill fs-6"><i class="bi bi-shield-check me-1"></i>100% PASS</span>
-            <small class="text-muted fw-semibold">Ma trận 50/50 Test Cases An ninh Thông tin Toàn diện</small>
+            <small class="text-muted fw-semibold">Ma trận 55/55 Test Cases An ninh Thông tin Toàn diện</small>
             <span class="badge bg-primary-subtle text-primary border">OWASP ASVS 4.0</span>
         </div>
         <h2 class="fw-bold mb-1">Ma trận Báo cáo & Kiểm thử An ninh Phần mềm</h2>
@@ -459,6 +459,133 @@
 
             <div class="alert alert-warning-subtle border small py-2 mt-3 mb-0">
                 <strong>Bằng chứng an ninh:</strong> Kiểm tra Nhật ký bảo mật &rarr; Ghi nhận hành vi xâm phạm tính toàn vẹn <code>FILE_INTEGRITY_FAILED</code>. Dữ liệu giả mạo tuyệt đối không bao giờ lọt tới tay người dùng.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 6: Two-Factor Authentication (2FA / TOTP) -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-primary">Demo 6: Xác thực 2 bước 2FA / TOTP (Google Authenticator)</h5>
+                <span class="badge bg-primary-subtle text-primary border">TC51 / NIST AAL2</span>
+            </div>
+            <p class="small text-muted mb-3">Kiểm tra cơ chế phòng thủ đa yếu tố RFC 6238 bảo vệ chống đánh cắp mật khẩu.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Đăng nhập bất kỳ tài khoản nào, nhấn vào menu tên góc trên bên phải &rarr; Chọn <strong>"Bảo mật 2FA"</strong>.</li>
+                <li>Dùng điện thoại mở app <strong>Google Authenticator</strong> quét mã QR hiển thị trên màn hình.</li>
+                <li>Nhập mã 6 chữ số từ điện thoại để kích hoạt 2FA.</li>
+                <li>Đăng xuất, sau đó đăng nhập lại bằng Mật khẩu.</li>
+                <li><strong>Kết quả:</strong> Hệ thống chặn đăng nhập thông thường, yêu cầu chuyển sang màn hình xác thực mã 6 số từ Google Authenticator. Kẻ gian biết mật khẩu vẫn không thể vào được!</li>
+            </ol>
+            <div class="alert alert-light border small py-2 mb-0">
+                <strong>Bằng chứng an ninh:</strong> Ghi Audit Log <code>2FA_ENABLED</code> và <code>LOGIN_2FA_SUCCESS</code>.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 7: Deep File Inspection (Magic Bytes) -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-danger">Demo 7: Chặn Mã độc Ngụy trang (Deep Magic Bytes Inspection)</h5>
+                <span class="badge bg-danger-subtle text-danger border">TC52 / OWASP V5.2</span>
+            </div>
+            <p class="small text-muted mb-3">Kiểm định nhị phân sâu (File Signatures) phát hiện tệp thực thi đổi đuôi để né bộ lọc.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Chuẩn bị một tệp thực thi (hoặc đổi tên file bất kỳ có header <code>MZ</code> hay script <code>&lt;?php</code> thành <code>tailieu.pdf</code>).</li>
+                <li>Vào mục <strong>Tải lên</strong>, chọn tệp <code>tailieu.pdf</code> ngụy trang này và nhấn Tải lên.</li>
+                <li><strong>Kết quả:</strong> Thay vì chỉ tin tưởng phần mở rộng (.pdf), hệ thống kiểm tra 4 byte nhị phân đầu tiên, phát hiện chữ ký DOS/PE hoặc Web Shell và <strong>chặn ngay lập tức</strong> với thông báo: <span class="text-danger fw-semibold">"Phát hiện chữ ký nhị phân độc hại (Magic Bytes: 'MZ' - Windows PE Executable)!"</span></li>
+                <li>Tệp hoàn toàn bị loại bỏ, không bao giờ được mã hóa hay ghi vào máy chủ.</li>
+            </ol>
+            <div class="alert alert-light border small py-2 mb-0">
+                <strong>Bằng chứng an ninh:</strong> Ghi Audit Log <code>INVALID_UPLOAD</code> với nguyên nhân chữ ký nhị phân không hợp lệ.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 8: Honeypot Active Defense Trap -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-danger" style="background: #FFFDFD;">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-danger">Demo 8: Bẫy An ninh Chủ động (Honeypot Trap)</h5>
+                <span class="badge bg-danger text-white border">TC53 / Active Defense</span>
+            </div>
+            <p class="small text-muted mb-3">Giăng bẫy tệp tin mật giả định để phát hiện và tiêu diệt hành vi nội gián.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Đăng nhập tài khoản <code>bin</code> hoặc <code>chuong</code>.</li>
+                <li>Vào mục <strong>Tài liệu</strong> &rarr; Bấm tab <strong>"Được chia sẻ với tôi"</strong>.</li>
+                <li>Thấy tệp bẫy: <span class="badge bg-dark text-warning font-monospace">mat_khau_server_backup.txt</span>.</li>
+                <li>Cố tình bấm vào tên tệp hoặc bấm nút <strong>Tải về</strong>.</li>
+                <li><strong>Kết quả an ninh:</strong> Bẫy Honeypot kích hoạt ngay tức khắc! Màn hình đỏ rực cảnh báo vi phạm, tài khoản lập tức bị <strong>KHÓA 24 GIỜ</strong> và đăng xuất cưỡng chế! Thử đăng nhập lại sẽ bị từ chối hoàn toàn.</li>
+            </ol>
+            <div class="alert alert-danger-subtle border small py-2 mb-0">
+                <strong>Bằng chứng SOC:</strong> Ghi nhận Audit Log <code>HONEYPOT_TRIGGERED</code> (Cấp độ nguy hiểm <strong>CRITICAL</strong>).
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 9: Forensic Watermarking (DLP) -->
+    <div class="col-lg-6">
+        <div class="card-sec p-4 h-100 border-start border-4 border-info">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-primary">Demo 9: Đóng Dấu Mờ Động (Forensic Watermarking / DLP)</h5>
+                <span class="badge bg-info-subtle text-info-emphasis border">TC54 / ISO 27001 DLP</span>
+            </div>
+            <p class="small text-muted mb-3">Ngăn chặn rò rỉ dữ liệu bằng cách định danh pháp lý người tải lên từng tệp tin.</p>
+            <ol class="small text-secondary ps-3 mb-3" style="line-height: 1.7;">
+                <li>Đăng nhập tài khoản bất kỳ, mở một tệp tin (ví dụ <code>ke_hoach_khoi.txt</code> hoặc file ảnh).</li>
+                <li>Bấm nút màu xanh <strong>"Tải có Watermark DLP"</strong>.</li>
+                <li>Mở file tải về trên máy tính.</li>
+                <li><strong>Kết quả:</strong> 
+                    <ul>
+                        <li>Nếu là file text: Toàn bộ header và footer được nhúng vệt kiểm toán: <code>[!] Người tải về: bin - IP: 127.0.0.1 - Thời gian UTC</code>.</li>
+                        <li>Nếu là ảnh: Có chữ mờ chìm chéo đỏ nhạt in xuyên suốt tấm hình.</li>
+                    </ul>
+                </li>
+                <li>Nếu người dùng chụp ảnh hoặc làm lộ ra ngoài, thủ phạm sẽ lập tức bị lộ diện!</li>
+            </ol>
+            <div class="alert alert-info-subtle border small py-2 mb-0">
+                <strong>Bằng chứng:</strong> Ghi Audit Log <code>DLP_WATERMARK_EMBEDDED</code>.
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo 10: Zero-Trust Expiring Link -->
+    <div class="col-lg-12">
+        <div class="card-sec p-4 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold mb-1 text-success">Demo 10: Chia Sẻ Bảo Mật Zero-Trust (Liên Kết Tự Hủy & Mật Mã Riêng)</h5>
+                <span class="badge bg-success-subtle text-success border">TC55 / Burn-After-Reading</span>
+            </div>
+            <p class="small text-muted mb-3">Mô hình chia sẻ bí mật tối cao giống Bitwarden Send / Signal: Tự hủy sau khi tải và bảo vệ bằng mật mã độc lập.</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-3 bg-light rounded border h-100">
+                        <strong class="text-dark small d-block mb-2"><i class="bi bi-shield-plus text-primary me-1"></i>Bước 1: Tạo liên kết tự hủy</strong>
+                        <ol class="small text-secondary ps-3 mb-0" style="line-height: 1.8;">
+                            <li>Đăng nhập tài khoản <code>bin</code>, mở tệp <code>bao_cao_bin.txt</code> do mình sở hữu.</li>
+                            <li>Nhìn sang cột bên phải &rarr; Mục <strong>"Liên kết tự hủy (Zero-Trust Link)"</strong>.</li>
+                            <li>Nhập mật mã mở link: <code>Secret@123</code>.</li>
+                            <li>Chọn số lượt tải: <strong>1 lần (Tự hủy)</strong> &rarr; Bấm <strong>Tạo liên kết tự hủy</strong>.</li>
+                            <li>Bấm nút sao chép link vừa tạo (ví dụ: <code>http://127.0.0.1:5000/share/link/...</code>).</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 bg-light rounded border h-100">
+                        <strong class="text-dark small d-block mb-2"><i class="bi bi-incognito text-danger me-1"></i>Bước 2: Mở tab ẩn danh / Trình duyệt khác để kiểm chứng</strong>
+                        <ol class="small text-secondary ps-3 mb-0" style="line-height: 1.8;">
+                            <li>Mở cửa sổ Ẩn danh (Incognito) hoặc trình duyệt khác, dán link vừa copy vào.</li>
+                            <li>Hệ thống yêu cầu nhập mật mã &rarr; Nhập sai sẽ bị chặn báo đỏ!</li>
+                            <li>Nhập đúng mật mã: <code>Secret@123</code> &rarr; File được giải mã tải về thành công!</li>
+                            <li><strong>Kiểm chứng tự hủy:</strong> F5 tải lại trang link một lần nữa &rarr; Báo lỗi ngay lập tức: <span class="text-danger fw-semibold">"Liên kết đã tự hủy hoặc hết hạn!" (HTTP 410 Gone)</span>.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div class="alert alert-success-subtle border small py-2 mt-3 mb-0">
+                <strong>Bằng chứng an ninh:</strong> Ghi Audit Log <code>SHARE_LINK_CREATED</code> và <code>SHARE_LINK_DOWNLOADED</code>.
             </div>
         </div>
     </div>

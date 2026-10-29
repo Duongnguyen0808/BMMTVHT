@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Chia sẻ tệp an toàn — {{ file.original_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-7 col-lg-6">
+        <div class="card-sec p-4 p-md-5 border-0 shadow-sm">
+            <div class="text-center mb-4">
+                <div class="stat-icon bg-light text-primary mx-auto mb-2" style="width: 58px; height: 58px; font-size: 1.8rem; border-radius: 16px;">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h4 class="fw-bold mb-1">Tài liệu chia sẻ an toàn</h4>
+                <p class="text-muted small">Được bảo vệ bởi cơ chế mã hóa đầu cuối & liên kết tự hủy</p>
+            </div>
+
+            <!-- File Info Card -->
+            <div class="p-3 bg-light rounded-3 border mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-white text-primary border" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                        <i class="bi bi-file-earmark-lock"></i>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-bold text-truncate text-dark">{{ file.original_name }}</div>
+                        <div class="text-muted small">
+                            Kích thước: {{ (file.file_size / 1024)|round(1) }} KB &bull; Người chia sẻ: <strong>{{ link.creator.username }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-2 border-secondary-subtle">
+
+                <div class="row g-2 text-center small text-secondary mt-1">
+                    <div class="col-6">
+                        <span class="text-muted">Lần tải:</span> <strong>{{ link.download_count }}/{{ link.max_downloads }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted">Hết hạn:</span>
+                        {% if link.expires_at %}
+                        <strong class="text-danger">{{ link.expires_at.strftime('%H:%M %d/%m/%Y') }}</strong>
+                        {% else %}
+                        <strong>Vĩnh viễn</strong>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if error_msg %}
+            <div class="alert alert-danger border-0 rounded-3 py-2 px-3 small d-flex align-items-center mb-3">
+                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                <div>{{ error_msg }}</div>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('files.view_shared_link', token=link.token) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                {% if link.passcode_hash %}
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small text-secondary" for="linkPasscodeInput">
+                        <i class="bi bi-key-fill text-primary me-1"></i> Mật mã truy cập (Passcode do người gửi cung cấp):
+                    </label>
+                    <input type="password" class="form-control form-control-lg fs-6" id="linkPasscodeInput" name="passcode" placeholder="Nhập mật mã để mở tệp..." required autofocus>
+                    <div class="form-text text-muted small mt-1">
+                        <i class="bi bi-shield-check me-1"></i> Tệp này được bảo vệ bởi mật mã độc lập.
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 small p-3 mb-4 text-secondary">
+                    <i class="bi bi-info-circle-fill text-primary me-1"></i> Nhấn nút bên dưới để giải mã và tải tệp về máy an toàn.
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary-sec btn-lg w-100 shadow-sm py-2">
+                    <i class="bi bi-download me-2"></i> Giải mã & Tải xuống tệp
+                </button>
+            </form>
+
+            <div class="mt-4 pt-3 border-top text-center">
+                <small class="text-muted">
+                    <i class="bi bi-fingerprint me-1"></i> Hệ thống tự động nhúng Watermark kiểm toán (DLP) chống rò rỉ dữ liệu.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

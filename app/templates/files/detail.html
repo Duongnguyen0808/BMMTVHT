@@ -101,9 +101,14 @@
                             <i class="bi bi-shield-slash-fill me-1"></i> Đã chặn tải xuống
                         </button>
                     {% else %}
-                        <a href="{{ url_for('files.download', file_id=file.id) }}" class="btn btn-primary-sec btn-lg">
-                            <i class="bi bi-download me-1"></i> Tải về máy
-                        </a>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ url_for('files.download', file_id=file.id) }}" class="btn btn-primary-sec btn-lg">
+                                <i class="bi bi-download me-1"></i> Tải về máy
+                            </a>
+                            <a href="{{ url_for('files.download', file_id=file.id, watermark=1) }}" class="btn btn-outline-primary btn-lg shadow-sm" title="Tải về có đóng dấu mờ chống rò rỉ dữ liệu DLP">
+                                <i class="bi bi-fingerprint me-1"></i> Tải có Watermark DLP
+                            </a>
+                        </div>
                     {% endif %}
                 {% else %}
                     <button class="btn btn-secondary" disabled title="Bạn chỉ có quyền xem thông tin (VIEW)">
@@ -175,6 +180,76 @@
                         Tệp tin này hiện chỉ có bạn (chủ sở hữu) có quyền truy cập.
                     </p>
                 {% endif %}
+
+                <!-- Zero-Trust Expiring Link Section -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="fw-bold small text-dark d-flex align-items-center justify-content-between mb-2">
+                        <span><i class="bi bi-link-45deg text-primary me-1"></i> Liên kết tự hủy (Zero-Trust Link)</span>
+                        <span class="badge bg-danger-subtle text-danger border">Tự hủy / Mật mã</span>
+                    </h6>
+
+                    <form method="POST" action="{{ url_for('files.create_share_link', file_id=file.id) }}" class="p-3 bg-light rounded border mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <label class="form-label small fw-semibold mb-1">Mật mã mở link (Tùy chọn):</label>
+                                <input type="text" name="passcode" class="form-control form-control-sm" placeholder="VD: Secret@123">
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label small fw-semibold mb-1">Số lượt tải:</label>
+                                <select name="max_downloads" class="form-select form-select-sm">
+                                    <option value="1" selected>1 lần (Tự hủy)</option>
+                                    <option value="3">3 lần</option>
+                                    <option value="10">10 lần</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">Thời gian hiệu lực:</label>
+                            <select name="expire_minutes" class="form-select form-select-sm">
+                                <option value="5">5 phút</option>
+                                <option value="60" selected>1 giờ</option>
+                                <option value="1440">24 giờ (1 ngày)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary-sec btn-sm w-100">
+                            <i class="bi bi-shield-plus me-1"></i> Tạo liên kết tự hủy
+                        </button>
+                    </form>
+
+                    <!-- Active Links List -->
+                    {% if shared_links %}
+                        <div class="list-group list-group-flush border rounded small">
+                            {% for sl in shared_links %}
+                            <div class="list-group-item p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge {{ 'bg-success-subtle text-success' if sl.is_valid() else 'bg-danger-subtle text-danger' }}">
+                                        {{ sl.download_count }}/{{ sl.max_downloads }} lượt tải
+                                    </span>
+                                    {% if sl.passcode_hash %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-key-fill"></i> Có mật mã</span>
+                                    {% endif %}
+                                </div>
+                                <div class="input-group input-group-sm mb-1">
+                                    <input type="text" class="form-control font-monospace bg-white" id="linkVal{{ sl.id }}" value="{{ request.host_url }}share/link/{{ sl.token }}" readonly style="font-size: 0.78rem;">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('linkVal{{ sl.id }}').value); this.innerText='Đã chép!';">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.75rem;">
+                                    <span>Hết hạn: {{ sl.expires_at.strftime('%H:%M %d/%m') if sl.expires_at else 'Vĩnh viễn' }}</span>
+                                    <form method="POST" action="{{ url_for('files.revoke_share_link', file_id=file.id, link_id=sl.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-link text-danger p-0 text-decoration-none" style="font-size: 0.75rem;">
+                                            <i class="bi bi-x-circle"></i> Hủy link
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
 
             {% else %}
                 <!-- For Shared Users (Read-only status) -->

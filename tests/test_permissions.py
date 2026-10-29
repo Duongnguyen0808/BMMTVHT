@@ -67,7 +67,7 @@ def test_tc14_idor_url_manipulation(client, create_user, auth_client, app):
     bob = create_user(username='bob', email='bob@example.com', password='Password@123')
 
     with app.app_context():
-        fs = FileStorage(stream=io.BytesIO(b"Alice confidential medical report"), filename="alice_medical.pdf", content_type="application/pdf")
+        fs = FileStorage(stream=io.BytesIO(b"%PDF-1.4 Alice confidential medical report"), filename="alice_medical.pdf", content_type="application/pdf")
         alice_record = process_file_upload(fs, owner_id=alice.id)
         alice_file_id = alice_record.id
 

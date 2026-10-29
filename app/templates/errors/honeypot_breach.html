@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}BÁO ĐỘNG AN NINH: Kích hoạt Honeypot Trap — SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card-sec p-4 p-md-5 border-0 shadow-lg text-center" style="border-top: 6px solid #DC2626 !important; background: #FFF5F5;">
+            <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center mb-4" style="width: 88px; height: 88px;">
+                <i class="bi bi-shield-slash-fill fs-1"></i>
+            </div>
+
+            <div class="badge bg-danger text-white px-3 py-2 rounded-pill fs-6 text-uppercase letter-spacing-1 mb-3">
+                <i class="bi bi-exclamation-octagon-fill me-1"></i> Báo động Đỏ: Cảnh báo Xâm nhập
+            </div>
+
+            <h2 class="fw-bold text-danger mb-3">BẪY AN NINH (HONEYPOT) ĐÃ KÍCH HOẠT!</h2>
+            
+            <p class="text-secondary fs-6 mb-4 leading-relaxed">
+                Hệ thống phòng thủ chủ động (Active Defense / Honeytoken) phát hiện hành vi truy cập trái phép vào tệp tin bẫy nhạy cảm:
+                <br>
+                <strong class="text-dark font-monospace fs-5 bg-white p-2 rounded border border-danger d-inline-block mt-2">
+                    <i class="bi bi-file-earmark-lock2-fill text-danger me-1"></i> {{ file_name }}
+                </strong>
+            </p>
+
+            <div class="alert alert-danger bg-white border border-danger-subtle rounded-3 text-start p-3 p-md-4 mb-4 shadow-sm">
+                <h6 class="fw-bold text-danger mb-2"><i class="bi bi-shield-x me-1"></i> Các biện pháp phòng vệ tự động đã thực thi:</h6>
+                <ul class="small text-secondary ps-3 mb-0" style="line-height: 1.8;">
+                    <li><strong>Khóa tài khoản:</strong> Tài khoản <code>{{ username }}</code> đã bị <strong>KHÓA NGAY LẬP TỨC</strong>.</li>
+                    <li><strong>Hủy phiên truy cập:</strong> Mọi phiên đăng nhập hiện tại đã bị chấm dứt cưỡng chế.</li>
+                    <li><strong>Ghi nhận Pháp lý & Điều tra số:</strong> Nhật ký an ninh <code>HONEYPOT_TRIGGERED</code> (Cấp độ CRITICAL) đã được gửi tới Trung tâm Giám sát SOC cùng địa chỉ IP và dấu vân tay trình duyệt.</li>
+                </ul>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-danger px-4 py-2">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Quay về Đăng nhập
+                </a>
+                <a href="{{ url_for('files.testcases') }}" class="btn btn-danger px-4 py-2 shadow-sm">
+                    <i class="bi bi-clipboard-check me-1"></i> Xem Ma trận An ninh
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Xác thực 2 bước (2FA) — SecureShare{% endblock %}
+
+{% block content %}
+<style>
+@keyframes shakeAnimation {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+.shake-box {
+    animation: shakeAnimation 0.4s ease-in-out;
+}
+.otp-input-highlight {
+    letter-spacing: 0.35rem;
+    max-width: 280px;
+    height: 58px;
+    transition: all 0.25s ease;
+}
+.otp-input-highlight:focus {
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18);
+}
+</style>
+
+<div class="row justify-content-center py-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card-sec p-4 p-md-5 auth-card border-0" id="card2FA">
+            <div class="text-center mb-4">
+                <div class="stat-icon bg-light text-primary mx-auto mb-2" style="width: 58px; height: 58px; font-size: 1.8rem; border-radius: 16px;">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h3 class="fw-bold">Xác thực 2 bước (2FA)</h3>
+                <p class="text-muted small">
+                    Tài khoản <strong>{{ user.username }}</strong> yêu cầu mã xác thực 6 số (TOTP RFC 6238).
+                </p>
+            </div>
+
+            <!-- Hint helper -->
+            <div class="alert alert-primary bg-primary bg-opacity-10 border-0 rounded-3 d-flex align-items-center mb-3 p-3">
+                <i class="bi bi-phone-vibrate text-primary fs-3 me-3"></i>
+                <div class="small text-secondary">
+                    Nhập mã 6 số từ ứng dụng <strong>Google Authenticator</strong> hoặc từ trang web <strong><a href="https://2fa.live" target="_blank" class="text-primary fw-bold text-decoration-none">2fa.live</a></strong>.
+                </div>
+            </div>
+
+            <!-- Live Client-side Error Box -->
+            <div id="liveClientError" class="alert alert-danger d-none border-0 rounded-3 py-2 px-3 mb-3 small d-flex align-items-center shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger me-2"></i>
+                <span id="liveClientErrorText">Mã 2FA không hợp lệ.</span>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.login_2fa') }}" id="form2FA" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-4 text-center">
+                    <label class="form-label fw-semibold text-secondary small text-uppercase letter-spacing-1 mb-2" for="otpInput">
+                        Mã bảo mật (6 chữ số)
+                    </label>
+                    <div class="d-flex justify-content-center">
+                        {{ form.otp_code(
+                            class="form-control form-control-lg text-center fw-bold fs-3 text-primary otp-input-highlight",
+                            id="otpInput",
+                            placeholder="000000",
+                            maxlength="6",
+                            autocomplete="one-time-code",
+                            inputmode="numeric",
+                            autofocus=true
+                        ) }}
+                    </div>
+                    {% for error in form.otp_code.errors %}
+                        <div class="text-danger small mt-2 fw-semibold" id="serverFormError">{{ error }}</div>
+                    {% endfor %}
+                    <div class="form-text text-muted small mt-2">
+                        <i class="bi bi-arrow-repeat me-1"></i> Mã làm mới tự động sau mỗi 30 giây
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-sec btn-lg w-100 mb-3 shadow-sm" id="btnSubmit2FA">
+                    <i class="bi bi-check-circle-fill me-2"></i> Xác nhận & Tiếp tục
+                </button>
+
+                <div class="text-center text-muted small">
+                    <a href="{{ url_for('auth.login') }}" class="text-secondary text-decoration-none">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại trang Đăng nhập
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otpInput');
+    const form = document.getElementById('form2FA');
+    const card = document.getElementById('card2FA');
+    const liveError = document.getElementById('liveClientError');
+    const liveErrorText = document.getElementById('liveClientErrorText');
+    const serverError = document.getElementById('serverFormError');
+
+    // If server returned error, trigger shake effect
+    const flashDanger = document.querySelector('.alert-danger');
+    if (flashDanger || serverError) {
+        card.classList.add('shake-box');
+        otpInput.classList.add('is-invalid');
+    }
+
+    // Real-time input handling: Only digits & auto clear errors when user types!
+    otpInput.addEventListener('input', function(e) {
+        // Only keep numbers
+        this.value = this.value.replace(/[^0-9]/g, '');
+
+        // Khi người dùng gõ nhập lại, tự động xóa sạch các thông báo lỗi trước đó!
+        if (liveError) {
+            liveError.classList.add('d-none');
+        }
+        if (serverError) {
+            serverError.style.display = 'none';
+        }
+        otpInput.classList.remove('is-invalid');
+        card.classList.remove('shake-box');
+
+        // Dismiss any top flash alerts
+        if (flashDanger) {
+            flashDanger.style.transition = 'opacity 0.3s ease';
+            flashDanger.style.opacity = '0.4';
+        }
+    });
+
+    // Validate on submit
+    form.addEventListener('submit', function(e) {
+        const val = otpInput.value.trim();
+        if (val.length !== 6) {
+            e.preventDefault();
+            liveErrorText.innerHTML = '<strong>Mã chưa đủ 6 số!</strong> Vui lòng lấy đủ 6 chữ số từ 2fa.live hoặc Google Authenticator.';
+            liveError.classList.remove('d-none');
+            otpInput.classList.add('is-invalid');
+            card.classList.remove('shake-box');
+            void card.offsetWidth; // Force re-render for shake animation
+            card.classList.add('shake-box');
+            otpInput.focus();
+        }
+    });
+});
+</script>
+{% endblock %}
